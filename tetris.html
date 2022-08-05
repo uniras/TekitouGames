@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>テトリス</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            border: solid 1px;
+            margin: 15px;
+        }
+
+        #field {
+            float: left;
+        }
+
+        tr {
+            margin: 0;
+            padding: 0;
+        }
+
+        .block {
+            margin: 0;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        #next {
+            margin: 15px;
+        }
+
+        .nextblock {
+            margin: 0;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+    <script>
+        const copyMatrix = function (base) {
+            const result = [];
+            for (const line of base) {
+                result.push([...line]);
+            }
+            return result;
+        };
+
+        let basefield = [
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9],
+            [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+        ];
+
+        let field = copyMatrix(basefield);
+
+        const mino = [
+            [
+                [0, 1, 0, 0],
+                [0, 1, 0, 0],
+                [0, 1, 0, 0],
+                [0, 1, 0, 0],
+            ],
+            [
+                [0, 0, 0, 0],
+                [0, 2, 2, 0],
+                [0, 2, 2, 0],
+                [0, 0, 0, 0],
+            ],
+            [
+                [0, 0, 0, 0],
+                [0, 3, 0, 0],
+                [0, 3, 3, 0],
+                [0, 3, 0, 0],
+            ],
+            [
+                [0, 0, 0, 0],
+                [0, 4, 4, 0],
+                [0, 4, 0, 0],
+                [0, 4, 0, 0],
+            ],
+            [
+                [0, 0, 0, 0],
+                [0, 5, 5, 0],
+                [0, 0, 5, 0],
+                [0, 0, 5, 0],
+            ],
+            [
+                [0, 0, 0, 0],
+                [0, 0, 6, 0],
+                [0, 6, 6, 0],
+                [0, 6, 0, 0],
+            ],
+            [
+                [0, 0, 0, 0],
+                [0, 7, 0, 0],
+                [0, 7, 7, 0],
+                [0, 0, 7, 0],
+            ],
+        ];
+
+        let block = [
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+        ];
+
+        let nextblock = [
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+        ];
+
+        let pushkey = {};
+
+        const color = ['white', 'red', 'green', 'blue', 'yellow', 'purple', 'cyan', 'orange', 'black', 'gray'];
+
+        const init = function () {
+            document.addEventListener('keydown', keydown_ivent);
+            document.addEventListener('keyup', keyup_ivent);
+
+            for (let i = 2; i < field.length; i++) {
+                $('#field').append('<tr id="t' + i + '">')
+                for (let j = 0; j < field[i].length; j++) {
+                    $('#t' + i).append('<td class="block" id="' + i + '_' + j + '"></td>');
+                }
+            }
+            for (let i = 0; i < block.length; i++) {
+                $('#next').append('<tr id="n' + i + '">')
+                for (let j = 0; j < block[i].length; j++) {
+                    $('#n' + i).append('<td class="block" id="n' + i + '_' + j + '"></td>');
+                }
+            }
+        };
+
+        const draw = function () {
+            for (let i = 2; i < field.length; i++) {
+                for (let j = 0; j < field[i].length; j++) {
+                    $('#' + i + '_' + j).css('background', color[field[i][j]]);
+                    if (field[i][j] === 0) {
+                        $('#' + i + '_' + j).css('border', 'none');
+                    } else {
+                        $('#' + i + '_' + j).css('border', 'solid 1px');
+                    }
+                }
+            }
+            for (let i = 0; i < nextblock.length; i++) {
+                $('#next').append('<tr id="n' + i + '">')
+                for (let j = 0; j < nextblock[i].length; j++) {
+                    if (nextblock[i][j] === 0) {
+                        $('#n' + i + '_' + j).css('border', 'none');
+                        $('#n' + i + '_' + j).css('background', color[9]);
+                    } else {
+                        $('#n' + i + '_' + j).css('border', 'solid 1px');
+                        $('#n' + i + '_' + j).css('background', color[nextblock[i][j]]);
+                    }
+                }
+            }
+        };
+
+        const setblock = function () {
+            block = copyMatrix(nextblock);
+            let rnd = Math.floor(Math.random() * mino.length);
+            nextblock = copyMatrix(mino[rnd]);
+        };
+
+        const mergeblock = function (x, y) {
+            field = copyMatrix(basefield);
+            for (let i = 0; i < block.length; i++) {
+                for (let j = 0; j < block[i].length; j++) {
+                    if (block[i][j] != 0) {
+                        if (y + i >= 0 && x + j >= 0) field[y + i][x + j] = block[i][j];
+                    } else {
+                        //デバッグ用
+                        //field[y + i][x + j] = 8;
+                    }
+                }
+            }
+        };
+
+        const rotate = function (right = true) {
+            let row = block.length;
+            let col = block[0].length;
+            let result = [];
+            if (right) {
+                for (let i = 0; i < col; i++) {
+                    result.push([]);
+                    for (let j = 0; j < row; j++) {
+                        result[i].push(block[row - j - 1][i]);
+                    }
+                }
+            } else {
+                for (let i = 0; i < col; i++) {
+                    result.push([]);
+                    for (let j = 0; j < row; j++) {
+                        result[i].push(block[j][col - i - 1]);
+                    }
+                }
+            }
+            return result;
+        }
+
+        const checkfield = function (checkblock, x, y) {
+            for (let i = 0; i < checkblock.length; i++) {
+                for (let j = 0; j < checkblock[i].length; j++) {
+                    if (y + i >= 0 && x + j >= 0) {
+                        if (checkblock[i][j] !== 0 && basefield[y + i][x + j] !== 0) return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        const keydown_ivent = function (e) {
+            if (!event.repeat) pushkey[e.key] = true;
+        }
+
+        const keyup_ivent = function (e) {
+            if (!event.repeat) pushkey[e.key] = false;
+        }
+
+        const checkKey = function (key, repeat = false) {
+            if (!pushkey[key]) return false;
+            if (!repeat) {
+                pushkey[key] = false;
+            }
+            return true;
+        }
+
+        const checkcomp = function () {
+            //消去チェック・消去処理
+            let comps = 0;
+            let next = false;
+            while (true) {
+                for (let i = field.length - 2; i >= 0; i--) {
+                    let comp = true;
+                    next = false;
+                    for (let j = 0; j < field[i].length; j++) {
+                        if (field[i][j] === 0) {
+                            comp = false;
+                            break;
+                        }
+                    }
+                    if (comp) {
+                        //下へ移動
+                        for (let k = i - 1; k >= 0; k--) {
+                            for (let l = 0; l < field[k].length; l++) {
+                                field[k + 1][l] = field[k][l];
+                            }
+                        }
+                        //一番上は壁以外は空白で埋める
+                        for (let m = 0; m < field[0].length; m++) {
+                            if (field[0][m] !== 9) field[0][m] = 0;
+                        }
+                        comps++;
+                        next = true;
+                    }
+                    if (next) break;
+                }
+                if (!next) break;
+            }
+            return comps;
+        }
+
+        const game = async function () {
+            init();
+            setblock();
+            setblock();
+            mergeblock(4, 0);
+            draw();
+            var x = 4;
+            var y = 0;
+            var chx = x;
+            var chy = y;
+            var checkblock;
+            var down = false;
+            var level = 0;
+            var comps = 0;
+            var frame = 0; //100000フレーム単位
+            $('#output').text('0列消しました');
+            while (true) {
+                checkblock = null;
+                down = false;
+                frame = ((frame + 1) % 100000);
+                await new Promise(s => setTimeout(s, 33));
+                if (checkKey('ArrowLeft')) {
+                    chx = x - 1;
+                    chy = y;
+                    checkblock = copyMatrix(block);
+                }
+                if (checkKey('ArrowRight')) {
+                    chx = x + 1;
+                    chy = y;
+                    checkblock = copyMatrix(block);
+                }
+                if (checkKey('ArrowDown', true)) {
+                    down = true;
+                }
+                if (checkKey('ArrowUp')) {
+                    chx = x;
+                    chy = y;
+                    checkblock = copyMatrix(rotate(true));
+                }
+
+                //レベルに応じた速さで自動で落ちる
+                if (frame % (100 - (level * 5)) === 0) {
+                    down = true;
+                }
+
+                if (down) {
+                    chx = x;
+                    chy = y + 1;
+                    checkblock = copyMatrix(block);
+                }
+
+                if (checkblock != null) {
+                    if (checkfield(checkblock, chx, chy)) {
+                        x = chx;
+                        y = chy;
+                        block = copyMatrix(checkblock);
+                        mergeblock(x, y);
+                    } else if (chy !== y) {
+                        mergeblock(x, y);
+
+                        //消去判定
+                        let comp = checkcomp();
+
+                        if(comp > 0) {
+                            comps += comp;
+                            if(Math.floor(comps / 5) > level && level < 20) {
+                                level++;
+                                $('#output').text(comps + '列消しました。'+ level + 'レベルにアップしました。');
+                            } else {
+                                $('#output').text(comps + '列消しました。');
+                            }
+                        }
+
+                        x = 4;
+                        y = 0;
+                        setblock();
+                        basefield = copyMatrix(field);
+                        checkblock = copyMatrix(block);
+                        //ゲームオーバー
+                        if(!checkfield(checkblock, x, y)) {
+                            mergeblock(x, y);
+                            draw();
+                            $('#output').text('ゲームオーバーです。' + comps + '列消しました');
+                            break;
+                        }
+                    }
+                } else {
+                    mergeblock(x, y);
+                }
+                draw();
+            }
+        }
+
+        $('document').ready(function () {
+            game();
+        });
+    </script>
+</head>
+
+<body>
+    <div id="output">　</div>
+    <table id="field">
+    </table>
+    <table id="next">
+    </table>
+    <div id="instruction">
+        <p>遊び方</p>
+        <p>
+            左右キーでミノが左右に動きます。<br>
+            上キーでミノが左回転します。<br>
+            下キーでミノが落下します。
+        </p>
+    </div>
+</body>
+
+</html>

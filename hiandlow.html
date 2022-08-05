@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ハイアンドロー</title>
+    <style>
+        table {
+            margin: 0;
+        }
+
+        #main {
+            float: left;
+            width: 230px;
+        }
+
+        td {
+            width: 100px;
+            height: 200px;
+            text-align: center;
+        }
+
+        td.btn {
+            width: 100px;
+            height: 20px;
+        }
+
+        td.btn2 {
+            width: 200px;
+            height: 20px;
+        }
+
+        button {
+            width: 100%;
+            height: 100%;
+        }
+
+        .card {
+            font-size: 36px;
+            border: solid 1px;
+        }
+
+        #instruction {
+            margin-left: 20px;
+        }
+    </style>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+    <script>
+        //トランプ管理クラス
+        class Trump {
+            deck = [];
+            player = [];
+            joker = 'JKR';
+            number = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+            suithtml = ['<span style="color:red;">♥</span>', '<span style="color:red;">♦</span>', '<span style="color:black;">♣</span>', '<span style="color:black;">♠</span>', ''];
+            suit = ['♥', '♦', '♣', '♠', ''];
+
+            constructor(players = 0, jokers = 1, shuffle = true) {
+                this.init(players, jokers, shuffle);
+            }
+
+            init(players = 0, jokers = 1, shuffle = true) {
+                this.deck = [];
+                this.player = [];
+
+                if (jokers < 0) jokers = 0;
+                if (jokers > 2) jokers = 2;
+
+                for (let i = 0; i < 52 + jokers; i++) {
+                    this.deck.push(i);
+                }
+
+                if (players > 0) {
+                    for (let i = 0; i < players; i++) {
+                        this.player.push([]);
+                    }
+                }
+
+                if (shuffle) {
+                    this.shuffle();
+                }
+            }
+
+            shuffle(times = 10000) {
+                if (this.deck.length <= 0) return;
+
+                for (let i = 0; i < times; i++) {
+                    let rnd = Math.floor(Math.random() * this.deck.length);
+                    let buf = this.deck[0];
+                    this.deck[0] = this.deck[rnd];
+                    this.deck[rnd] = buf;
+                }
+            }
+
+            sendCard(from, to) {
+                if (from >= this.player.length) return false;
+                if (to >= this.player.length) return false;
+                let fromary = from < 0 ? this.deck : this.player[from];
+                let toary = to < 0 ? this.deck : this.player[to];
+                if (fromary.length === 0) return false;
+                toary.unshift(fromary.shift());
+                return true;
+            }
+
+            sendCardIndex(from, findex, to, tindex = 0) {
+                if (from >= this.player.length) return false;
+                if (to >= this.player.length) return false;
+                let fromary = from < 0 ? this.deck : this.player[from];
+                let toary = to < 0 ? this.deck : this.player[to];
+                if (findex < 0 || findex >= fromary.length) return false;
+                if (tindex < 0) return false;
+                if (fromary.length === 0) return false;
+                toary.splice(tindex, 0, fromary.splice(findex, 1)[0]);
+                return true;
+            }
+
+            getCardCount(play) {
+                if (play >= this.player.length) return -1;
+                let playary = play < 0 ? this.deck : this.player[play];
+                return playary.length;
+            }
+
+            getCardArray(play) {
+                if (play >= this.player.length) return null;
+                let playary = play < 0 ? this.deck : this.player[play];
+                return playary;
+            }
+
+            getSuit(card) {
+                if (card < 0 || card > 53) return -1;
+                if (card === 52 || card === 53) return 4;
+                return Math.floor(card / 13);
+            }
+
+            getRawNumber(card) {
+                if (card < 0 || card > 53) return -1;
+                if (card === 52 || card === 53) return -1;
+                return card % 13;
+            }
+
+            getNumber(card) {
+                if (card < 0 || card > 53) return -1;
+                if (card === 52 || card === 53) return -1;
+                return card % 13 + 1;
+            }
+
+            getCardString(card) {
+                if (card < 0 || card > 53) return '';
+                if (card === 52 || card === 53) return this.joker;
+                return this.suit[Math.floor(card / 13)] + this.number[card % 13];
+            }
+
+            getCardHtml(card) {
+                if (card < 0 || card > 53) return '';
+                if (card === 52 || card === 53) return this.joker;
+                return this.suithtml[Math.floor(card / 13)] + '<br>' + this.number[card % 13];
+            }
+        }
+
+        let state = 0;
+
+        const game = async function () {
+            const trump = new Trump(1, 0);
+            let card;
+            let select;
+
+            $('button').on('click', function (event) {
+                let id = event.target.id;
+                if (id === 'reset') {
+                    state = 0;
+                } else if (state === 1) {
+                    select = id;
+                    state = 2;
+                }
+            });
+
+            while (1) {
+                await new Promise(s => setTimeout(s, 100));
+                switch (state) {
+                    case 0:
+                        $('#output').html('初期化しています。');
+                        trump.init(1, 0);
+                        $('#card1').html('');
+                        $('#card2').html('');
+                        trump.sendCard(-1, 0);
+                        trump.sendCard(-1, 0);
+                        card = trump.getCardArray(0);
+                        $('#card1').html(trump.getCardHtml(card[0]));
+                        state = 1;
+                        break;
+                    case 1:
+                        $('#output').html('ハイかローを選んでください');
+                        break;
+                    case 2:
+                        let w = select === 'hi' ? 1 : -1;
+                        let ws = select === 'hi' ? 'ハイを選びました。' : 'ローを選びました。';
+                        let s = trump.getRawNumber(card[1]) - trump.getRawNumber(card[0]);
+                        $('#card2').html(trump.getCardHtml(card[1]));
+                        if (s * w === 0) {
+                            $('#output').html(ws + '引き分けです');
+                        } else if (s * w > 0) {
+                            $('#output').html(ws + 'あなたの勝ちです');
+                        } else {
+                            $('#output').html(ws + 'あなたの負けです');
+                        }
+                        break;
+                    case 3:
+                        break;
+                }
+            }
+        }
+
+        $('document').ready(function () {
+            game();
+        });
+    </script>
+</head>
+
+<body>
+    <p id="output"></p>
+    <table id="main">
+        <tbody>
+            <tr>
+                <td>
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td class="card" id="card1"></td>
+                                <td class="card" id="card2"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td class="btn"><button id="hi">ハイ</button></td>
+                                <td class="btn"><button id="low">ロー</button></td>
+                            </tr>
+                            <tr>
+                                <td class="btn2" colspan="2"><button id="reset">もう一度</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <div id="instruction">
+        <p>遊び方</p>
+        <p>
+            右側に出るカードの番号が左側に出てるカードより、<br>
+            大きくなると思うなら「ハイ」<br>
+            小さくなると思うなら「ロー」<br>
+            をクリックしてください。
+        </p>
+    </div>
+
+</body>
+
+</html>
