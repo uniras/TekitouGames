@@ -236,11 +236,11 @@
         }
 
         const keydown_ivent = function (e) {
-            if (!event.repeat) pushkey[e.key] = true;
+            if (!e.repeat) pushkey[e.key] = true;
         }
 
         const keyup_ivent = function (e) {
-            if (!event.repeat) pushkey[e.key] = false;
+            if (!e.repeat) pushkey[e.key] = false;
         }
 
         const checkKey = function (key, repeat = false) {
