@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ヒットアンドブロー</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .digit {
+            border: solid 2px;
+            border-radius: 20px;
+            font-size: 80px;
+            height: 200px;
+            text-align: center;
+            display: grid;
+            place-items: center;
+            margin-bottom: 10px;
+        }
+
+        .row {
+            margin: 10px;
+        }
+
+        .ans {
+            overflow-y: scroll;
+            height: 200px;
+        }
+
+        .numinput {
+            width: 100%;
+            height: 50px;
+        }
+
+        button {
+            margin-bottom: 5px;
+        }
+    </style>
+    <script>
+        let pushkey = [];
+
+        document.addEventListener('keydown', e => {
+            if (!e.repeat) pushkey[e.key] = true;
+        });
+
+        document.addEventListener('keyup', e => {
+            if (!e.repeat) pushkey[e.key] = false;
+        });
+
+        const checkkeys = function (keys) {
+            let result = null;
+            for (let i = 0; i < keys.length; i++) {
+                if (pushkey[keys[i]]) {
+                    result = keys[i];
+                    pushkey[keys[i]] = false;
+                    break;
+                }
+            }
+            return result;
+        }
+
+
+        const checkKey = function (key, repeat = false) {
+            if (!pushkey[key]) return false;
+            if (!repeat) {
+                pushkey[key] = false;
+            }
+            return true;
+        }
+
+        const checknum = function (input, ans) {
+            let hit = 0;
+            let blow = 0;
+
+            for (let i = 0; i < 4; i++) {
+                if (ans[i] === input[i]) {
+                    hit++;
+                } else if (ans.includes(input[i])) {
+                    blow++;
+                }
+            }
+
+            return { 'hit': hit, 'blow': blow };
+        }
+
+        const game = async function () {
+            Array.from(document.getElementsByClassName('numinput')).forEach(e => {
+                e.addEventListener('click', e => {
+                    key = e.target.innerText;
+                    pushkey[key] = true;
+                })
+            });
+
+
+            let output = document.getElementById('output');
+            let out = [];
+            out[0] = document.getElementById('0');
+            out[1] = document.getElementById('1');
+            out[2] = document.getElementById('2');
+            out[3] = document.getElementById('3');
+            out[4] = document.getElementById('4');
+
+            let ans = [];
+            let input = [];
+            let nums = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+            let keys = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            let pin = 0;
+            let count = 0;
+            let state = 0;
+            let stime;
+
+            while (true) {
+                switch (state) {
+                    case 0:
+                        output.innerText = '答えを作成中・・・。';
+
+                        pin = 0;
+
+                        for (let i = 0; i < 4; i++) {
+                            input[i] = undefined;
+                            out[i].innerText = '';
+                        }
+
+                        out[4].innerHTML = '';
+
+                        for (let i = 0; i < 10000; i++) {
+                            let rnd = Math.floor(Math.random() * nums.length);
+                            let buf = nums[0];
+                            nums[0] = nums[rnd];
+                            nums[rnd] = buf;
+                        }
+
+                        ans[0] = nums[0];
+                        ans[1] = nums[1];
+                        ans[2] = nums[2];
+                        ans[3] = nums[3];
+
+                        output.innerText = '数字キーで4ケタの数字をかぶらないように入力してEnterを押してください。';
+
+                        state = 1;
+                        count = 0;
+                        stime = new Date();
+
+                        break
+                    case 1:
+                        let ikey = checkkeys(keys);
+                        if (ikey !== null) {
+                            if (pin < 4) {
+                                let dup = false;
+                                for (let i = 0; i < pin; i++) {
+                                    if (input[i] === parseInt(ikey)) {
+                                        dup = true;
+                                    }
+                                }
+                                if (!dup) {
+                                    input[pin] = parseInt(ikey);
+                                    out[pin].innerText = ikey;
+                                    pin++;
+                                }
+                            }
+                        } else if (checkKey('Enter')) {
+                            if (pin === 4) {
+                                count++;
+                                let chk = checknum(ans, input);
+                                let anst = input.join('');
+                                out[4].innerHTML = anst + ':　' + chk.hit + 'Hit　' + chk.blow + 'Blow<br>' + out[4].innerHTML;
+                                if (chk.hit == 4) {
+                                    let gtime = new Date();
+                                    let time = Math.floor((gtime.getTime() - stime.getTime()) / 1000);
+                                    output.innerText = 'おめでとうございます！' + count + '回、' + time + '秒で正解しました。Enterを押して次の問題へ。';
+                                    state = 2;
+                                } else {
+                                    for (let i = 0; i < 4; i++) {
+                                        input[i] = undefined;
+                                        out[i].innerText = '';
+                                    }
+                                    pin = 0;
+                                }
+                            }
+                        } else if (checkKey('Backspace')) {
+                            if (pin > 0) {
+                                pin--;
+                                input[pin] = undefined;
+                                out[pin].innerText = '';
+                            }
+                        }
+                        break;
+                    case 2:
+                        if (checkKey('Enter')) {
+                            state = 0;
+                        }
+                        break;
+                }
+
+                await new Promise(s => setTimeout(s, 33));
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async (event) => {
+            game();
+        });
+    </script>
+</head>
+
+<body>
+    <div class="container" id="base">
+        <div class="card">
+            <h5 class="card-header" id="output"></h5>
+            <div class="row">
+                <div class="col-xxl-1 col-0">
+                </div>
+                <div class="col-xxl-2 col-lg-2 col-md-3 col-3">
+                    <div class="digit" id="0"></div>
+                </div>
+                <div class="col-xxl-2 col-lg-2 col-md-3 col-3">
+                    <div class="digit" id="1"></div>
+                </div>
+                <div class="col-xxl-2 col-lg-2 col-md-3 col-3">
+                    <div class="digit" id="2"></div>
+                </div>
+                <div class="col-xxl-2 col-lg-2 col-md-3 col-3">
+                    <div class="digit" id="3"></div>
+                </div>
+                <div class="col-xxl-2 col-lg-4 col-md-12 col-12">
+                    <div class="ans" id="4"></div>
+                </div>
+                <div class="col-xxl-1 col-0">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xxl-2 col-0">
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">1</button>
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">2</button>
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">3</button>
+                </div>
+                <div class="col-xxl-2 col-0">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xxl-2 col-0">
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">4</button>
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">5</button>
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">6</button>
+                </div>
+                <div class="col-xxl-2 col-0">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xxl-2 col-0">
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">7</button>
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">8</button>
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">9</button>
+                </div>
+                <div class="col-xxl-2 col-0">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xxl-2 col-0">
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">Backspace</button>
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">0</button>
+                </div>
+                <div class="col-xxl-2 col-4">
+                    <button class="numinput btn btn-primary">Enter</button>
+                </div>
+                <div class="col-xxl-2 col-0">
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
