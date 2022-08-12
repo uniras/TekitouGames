@@ -307,7 +307,6 @@
                 checkblock = null;
                 down = false;
                 frame = ((frame + 1) % 100000);
-                await new Promise(s => setTimeout(s, 33));
                 if (checkKey('ArrowLeft')) {
                     chx = x - 1;
                     chy = y;
@@ -377,6 +376,7 @@
                     mergeblock(x, y);
                 }
                 draw();
+                await new Promise(s => setTimeout(s, 33));
             }
         }
 

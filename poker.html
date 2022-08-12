@@ -336,7 +336,7 @@
             return false;
         }
 
-        //ツーペア
+        //ツーペア(ジョーカーがあって別のペアがあった場合それはスリーカードになるのでジョーカーありでツーペアは成立しない)
         const istwopair = function (nums) {
             if (nums[0] === nums[1] && nums[2] === nums[3]) return true;
             if (nums[0] === nums[1] && nums[3] === nums[4]) return true;
