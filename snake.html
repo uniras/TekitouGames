@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スネークゲーム</title>
+    <script>
+        class GameBase {
+            gamestate;
+            gameobj;
+            canvas;
+            ctx;
+            pkey;
+            mousex;
+            mousey;
+            clickx;
+            clicky;
+
+            constructor(canvas) {
+                let _self = this;
+                if (typeof (canvas) === 'string') {
+                    let canvasstr = canvas;
+                    canvas = document.getElementById(canvasstr);
+                    if (canvas === null) {
+                        window.addEventListener('DOMContentLoaded', e => {
+                            canvas = document.getElementById(canvasstr);
+                            _self.__init(canvas);
+                        });
+                        return;
+                    }
+                }
+                _self.__init(canvas);
+            }
+
+            __init(canvas) {
+                const ctx = canvas.getContext('2d');
+                this.canvas = canvas;
+                this.ctx = ctx;
+                if (ctx != null) {
+                    this.pkey = {};
+                    this.mousex = -1;
+                    this.mousey = -1;
+                    this.clickx = -1;
+                    this.clicky = -1;
+                    let _self = this;
+                    document.addEventListener('keydown', e => {
+                        if (!e.repeat) _self.pkey[e.key.toLowerCase()] = true;
+                    });
+                    document.addEventListener('keyup', e => {
+                        if (!e.repeat) _self.pkey[e.key.toLowerCase()] = false;
+                    });
+                    document.addEventListener('mousemove', e => {
+                        _self.mousex = e.clientX - canvas.offsetLeft;
+                        _self.mousey = e.clientY - canvas.offsetTop;
+                    });
+                    document.addEventListener('mousedown', e => {
+                        _self.pkey['mouse'] = true;
+                        _self.clickx = e.clientX - canvas.offsetLeft;
+                        _self.clicky = e.clientY - canvas.offsetTop;
+                    });
+                    document.addEventListener('mouseup', e => {
+                        _self.pkey['mouse'] = false;
+                    });
+                    this.state = 0;
+                    this.gameobj = [];
+                    this.onStart();
+                    this.__draw();
+                }
+            }
+
+            __draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.onDraw(this.canvas, this.ctx, this.gamestate);
+                requestAnimationFrame(this.__draw.bind(this));
+            }
+
+            getKey(key, repeat = false) {
+                let result = this.pkey[key.toLowerCase()];
+                if (!repeat) this.pkey[key.toLowerCase()] = false;
+                return result;
+            }
+
+            clearKey(key) {
+                this.pkey[key.toLowerCase()] = false;
+            }
+
+            getMousePos() {
+                return { x: this.mousex, y: this.mousey };
+            }
+
+            getClickPos() {
+                return { x: this.clickx, y: this.clicky };
+            }
+
+            onStart() {
+            }
+
+            onDraw(canvas, ctx, gamestate) {
+                if (!Array.isArray(this.gameobj) || this.gameobj.length === 0) return;
+                this.gameobj.forEach(obj => obj.draw(canvas, ctx, gamestate));
+            }
+
+            playObject(obj) {
+                obj.play;
+            }
+
+            playBase64(music) {
+                const datauri = 'data:audio/mp3;base64,' + music;
+                const sound = new Audio(datauri);
+                sound.play();
+                return sound;
+            }
+
+            playURL(url) {
+                const sound = new Audio(uri);
+                sound.play();
+                return sound;
+            }
+        }
+
+        class GameObject {
+            x;
+            y;
+            w;
+            h;
+            state;
+            parent;
+
+            constructor(_p, _x, _y, _w, _h, _s) {
+                this.parent = _p;
+                this.x = _x;
+                this.y = _y;
+                this.w = _w;
+                this.h = _h;
+                this.state = _s;
+            }
+
+            draw(canvas, ctx, gamestate) {
+            }
+
+            drawRect(ctx, color, fill = false) {
+                ctx.beginPath();
+                ctx.rect(this.x, this.y, this.w, this.h);
+                if (fill) {
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                } else {
+                    ctx.strokeStyle = color;
+                    ctx.stroke();
+                }
+                ctx.closePath();
+            }
+
+            drawEllipse(ctx, color, fill = false) {
+                ctx.beginPath();
+                ctx.ellipse(this.x + (this.w / 2), this.y + (this.h / 2), this.w / 2, this.h / 2, 0, 0, Math.PI * 2);
+                if (fill) {
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                } else {
+                    ctx.strokeStyle = color;
+                    ctx.stroke();
+                }
+                ctx.closePath();
+            }
+
+            get top() {
+                return this.y;
+            }
+
+            get bottom() {
+                return this.y + this.h;
+            }
+
+            get left() {
+                return this.x;
+            }
+
+            get right() {
+                return this.x + this.w;
+            }
+
+            static isCollision(a, b, t = -1) {
+                if (b.left <= a.right &&
+                    a.left <= b.right &&
+                    b.top <= a.bottom &&
+                    a.top <= b.bottom) {
+
+                    //めり込み解消
+                    if (t === 0) {
+                        //y方向
+                        //めり込み具合でどっちから当たったか判別
+                        if ((a.right - b.left) - (b.right - a.left) >= 0) {
+                            //左から
+                            b.x = a.x - b.w - 1
+                        } else {
+                            //右から
+                            b.x = a.x + a.w + 1
+                        }
+                    } else if (t === 1) {
+                        //x方向
+                        //めり込み具合でどっちから当たったか判別
+                        if ((a.bottom - b.top) - (b.bottom - a.top) >= 0) {
+                            //上から
+                            b.y = a.y - b.h - 1
+                        } else {
+                            //下から
+                            b.y = a.y + a.h + 1
+                        }
+                    }
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        class SnakeObject extends GameObject {
+            pos;
+            snakeobj;
+            type;
+            live;
+
+            constructor(_p, _x, _y, _w, _h, _type, _color, _snake) {
+                super(_p, _x, _y, _w, _h);
+                this.snakeobj = _snake;
+                this.pos = [this.x, this.y];
+                this.type = _type;
+                this.color = _color;
+                this.live = true;
+            }
+
+            draw(canvas, ctx, gamestate) {
+                if (!this.live) {
+                    //死んでいたら自分を削除
+                    this.parent.gameobj.splice(this.parent.gameobj.indexOf(this), 1);
+                    return;
+                }
+                //スネークの頭が自分の位置に来ていたらスネークに通知
+                if (this.snakeobj.pos[0] === this.pos[0] &&
+                    this.snakeobj.pos[1] === this.pos[1] &&
+                    this.parent.gamestate === 1) {
+
+                    //エサオブジェクトなら配列から取り除くためにフラグを立てる
+                    if (this.type === 1) this.live = false;
+
+                    //通知
+                    this.snakeobj.setCollision(this.type);
+                }
+
+                this.parent.drawBlock(this.x, this.y, this.color);
+            }
+        }
+
+        class Snake extends GameObject {
+            pos;
+            color;
+            body;
+            vectype;
+            speed;
+            point;
+            coltype;
+            frame;
+            ix;
+            iy;
+
+            //右:0  左:1　上:2　下:3
+            static vecx = [1, -1, 0, 0];
+            static vecy = [0, 0, -1, 1];
+            static basespeed = 100;
+
+            constructor(_p, _x, _y, _w, _h, _color) {
+                super(_p, _x, _y, _w, _h);
+                this.ix = this.x;
+                this.iy = this.y;
+                this.color = _color;
+                this.init(this.x, this.y);
+            }
+
+            init(x, y) {
+                this.pos = [x, y];
+                this.body = [[x, y]];
+                this.vectype = 0;
+                this.speed = 0;
+                this.point = 0;
+                this.coltype = -1;
+                this.frame = 0;
+            }
+
+            draw(canvas, ctx, gamestate) {
+                if (this.parent.gamestate === 0) {
+                    if (this.parent.getKey('enter')) {
+                        this.parent.output.innerText = this.point + '点獲得'
+                        this.parent.gamestate = 1;
+                    }
+                } else if (this.parent.gamestate === 1) {
+                    if (this.coltype === 0) {
+                        //壁
+                        //壁に当たっているのでゲームオーバー
+                        this.parent.gamestate = 2;
+                        this.parent.output.innerText = this.point + '点でゲームオーバーです。エンターキーを押してリスタート。'
+                    } else if (this.coltype === 1) {
+                        //エサ
+                        //エサを取ったら最後尾と同じ座標をpushで伸ばす
+                        let arr = [];
+                        arr[0] = this.body[this.body.length - 1][0];
+                        arr[1] = this.body[this.body.length - 1][1];
+                        this.body.push(arr);
+                        //ポイントを増やす
+                        this.point++;
+                        //新しい餌オブジェクトを追加
+                        this.parent.createfood(this);
+                        this.parent.output.innerText = this.point + '点獲得'
+                    }
+                    if (this.coltype !== -1) this.coltype = -1;
+
+                    if (this.parent.gamestate !== 2) {
+                        this.frame = (this.frame + 1) % 100000;
+
+                        //特定のキーが押されていたら方向転換
+                        //ただし正反対の方向には動けないようにする
+                        if (this.parent.getKey('arrowright')) {
+                            if (this.vectype !== 0 && this.vectype !== 1) {
+                                this.vectype = 0;
+                            }
+                        } else if (this.parent.getKey('arrowleft')) {
+                            if (this.vectype !== 0 && this.vectype !== 1) {
+                                this.vectype = 1;
+                            }
+                        } else if (this.parent.getKey('arrowup')) {
+                            if (this.vectype !== 2 && this.vectype !== 3) {
+                                this.vectype = 2;
+                            }
+                        } else if (this.parent.getKey('arrowdown')) {
+                            if (this.vectype !== 2 && this.vectype !== 3) {
+                                this.vectype = 3;
+                            }
+                        }
+                        this.parent.clearKey('arrowright');
+                        this.parent.clearKey('arrowleft');
+                        this.parent.clearKey('arrowup');
+                        this.parent.clearKey('arrowdown');
+
+                        //移動
+                        if ((this.frame % 10) === 0) {
+                            let vx = Snake.vecx[this.vectype];
+                            let vy = Snake.vecy[this.vectype];
+                            this.pos[0] += vx;
+                            this.pos[1] += vy;
+                            this.x = this.pos[0];
+                            this.y = this.pos[1];
+
+                            //ボディの配列内だったらゲームオーバー
+                            let hit = false;
+                            for (let i = 0; i < this.body.length; i++) {
+                                if (this.body[i][0] === this.pos[0] &&
+                                    this.body[i][1] === this.pos[1]) {
+                                    hit = true;
+                                }
+                            }
+
+                            /*
+                            this.body.forEach((e) => {
+                                if (this.pos[0] === e[0] && this[1] === e[1]) hit = true;
+                            });
+                            */
+
+                            if (hit) {
+                                this.parent.gamestate = 2;
+                                this.parent.output.innerText = this.point + '点でゲームオーバーです。エンターキーを押してリスタート。'
+                            } else {
+                                //popで削除して新しい配列をunshiftで挿入
+                                this.body.pop();
+                                this.body.unshift([this.x, this.y]);
+                            }
+                        }
+                    }
+                } else if (this.parent.gamestate === 2) {
+                    if (this.parent.getKey('enter')) {
+                        this.init(this.ix, this.iy);
+                        this.parent.output.innerText = this.point + '点獲得'
+                        this.parent.gamestate = 1;
+                        return;
+                    }
+                }
+                //ボディの配列に沿って体を描画
+                this.body.forEach((e) => this.parent.drawBlock(e[0], e[1], this.color));
+            }
+
+            setCollision(type) {
+                this.coltype = type;
+            }
+        }
+
+        class SnakeGame extends GameBase {
+            bs;
+            bw;
+            bh;
+            output;
+
+            constructor(canvas, _bs) {
+                super(canvas);
+                this.bs = _bs;
+            }
+
+            onStart() {
+                this.output = document.getElementById('output');
+
+                this.gamestate = 0;
+
+                //ブロックとキャンバスのサイズから縦と横のブロック数を計算
+                this.bw = Math.floor(this.canvas.width / this.bs);
+                this.bh = Math.floor(this.canvas.height / this.bs);
+
+                //スネークオブジェクトの作成
+                let snake = new Snake(this, 2, 2, 0, 0, 'blue');
+
+                //壁オブジェクトの作成と追加
+                for (let i = 0; i < this.bh; i++) {
+                    for (let j = 0; j < this.bw; j++) {
+                        if (j === 0 || j === this.bw - 1 || i === 0 || i === this.bh - 1) {
+                            this.gameobj.push(new SnakeObject(this, j, i, 0, 0, 0, 'black', snake));
+                        }
+                    }
+                }
+
+                //スネークをゲームオブジェクトに追加
+                this.gameobj.push(snake);
+
+                //エサをゲームに追加
+                this.createfood(snake);
+            }
+
+            createfood(snake) {
+                let nx;
+                let ny;
+                while (true) {
+                    nx = Math.floor(Math.random() * (this.bw - 2)) + 1;
+                    ny = Math.floor(Math.random() * (this.bh - 2)) + 1;
+                    let hit = false;
+                    snake.body.forEach((e) => {
+                        if (nx === e[0] && ny === e[1]) hit = true;
+                    });
+                    if (!hit) break;
+                }
+                this.gameobj.push(new SnakeObject(this, nx, ny, 0, 0, 1, 'orange', snake));
+            }
+
+            //オブジェクトの描画関数
+            drawBlock(x, y, color) {
+                this.ctx.beginPath();
+                this.ctx.rect(this.bs * x, this.bs * y, this.bs, this.bs);
+                this.ctx.fillStyle = color;
+                this.ctx.fill();
+                this.ctx.closePath();
+            }
+        }
+
+        let game = new SnakeGame('snake', 15);
+    </script>
+</head>
+
+<body>
+    <div id="output">エンターキーを押してスタート</div>
+    <canvas id="snake" width="720" height="480"></canvas>
+</body>
+
+</html>

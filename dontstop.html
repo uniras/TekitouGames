@@ -256,6 +256,15 @@
                 return result;
             }
 
+            async rollview(times = 100) {
+                let result;
+                for (let i = 0; i < times; i++) {
+                    result = this.roll();
+                    await new Promise(s => setTimeout(s, 10));
+                }
+                return result;
+            }
+
             //1個のダイス表示と結びついているので1個分だけ
             rollSum(times) {
                 return this.roll();
@@ -393,8 +402,14 @@
         }
 
         //ダイスを振って選択パネルの更新
-        const diceroll = function () {
+        const diceroll = async function () {
             //ダイスを振る
+            for (let t = 0; t < 100; t++) {
+                for (let i = 0; i < 4; i++) {
+                    dices[i].roll();
+                }
+                await new Promise(s => setTimeout(s, 10));
+            }
             for (let i = 0; i < 4; i++) {
                 dices[i].roll();
             }
@@ -584,7 +599,7 @@
                 } else if (ispush === 6) {
                     ispush = -1;
 
-                    diceroll();
+                    await diceroll();
 
                     //押せるボタンの数をカウント
                     let count = 0;
@@ -651,16 +666,30 @@
                             selp[i].classList.remove('selpaneldisable');
                         }
 
+                        //一旦ボタンは全部無効
+                        isenable = [false, false, false, false, false, false, false, false];
+                        setbutton();
+
                         //ダイスを振る処理
-                        diceroll();
+                        await diceroll();
                     } else if (state === 1) {
                         //次のターン
 
+                        //一旦ボタンは全部無効
+                        isenable = [false, false, false, false, false, false, false, false];
+                        setbutton();
+
                         //ピースの固定処理と初期化(ドボンの時は固定前の駒位置は0のはず)
                         for (let i = 0; i < pieces.length; i++) {
-                            if (piecepos[pieces[i]] !== 0) pinpos[pieces[i]] = piecepos[pieces[i]];
-                            pieces[i] = 0;
+                            if (pieces[i] !== 0) {
+                                pinpos[pieces[i]] = piecepos[pieces[i]];
+                                piecepos[pieces[i]] = 0;
+                                pieces[i] = 0;
+                                draw();
+                                await new Promise(s => setTimeout(s, 1000));
+                            }
                         }
+                        draw();
 
                         //ゴール数のカウント
                         let gcount = 0;
@@ -679,7 +708,7 @@
                             deepcopy(piecepos, pinpos);
                             turn++;
                             //ダイスを振る処理
-                            diceroll();
+                            await diceroll();
                             isenable[6] = false;
                             isenable[7] = false;
                             output.innerText = turn + 'ターン目です。進める組み合わせを選んでください。';
@@ -1046,11 +1075,11 @@
         <p>ただし、1ターンに進めることができる駒は<b>3つまで</b>です。</p>
         <p>進めた3つの駒以外の数(出目の合計)が出ても進めることは出来ません。</p>
         <p>出目の結果の数が進めた3つの駒のどの数にもならず進めることが出来なくなった場合、</p>
-        <p>失敗としてそのターンに進めた分は全て<b>無効</b>となります。</p>
+        <p>失敗としてそのターンに<b>進めた分は全て無効</b>となります。</p>
         <p>失敗する前に確定を選択するとそのターンで進めた分の駒を留めることができ、</p>
         <p>次のターン以降はその位置から駒を進めることになります。</p>
-        <p>駒を一番奥に進めた上で<b>「確定を選択する」</b>とゴールとなります。</p>
-        <p>駒がゴールの位置に到達したものの確定せず続けてその後の出目の結果失敗となった場合はゴールとはみなされません。</p>
+        <p>駒を一番奥に進めた上で<b>「確定する」</b>を選択するとゴールとなります。</p>
+        <p>駒がゴールの位置に到達したものの確定せず続け、その後の出目の結果失敗となった場合はゴールとはみなされません。</p>
         <p>ゴールに到達した数の駒は(確定前でも)もう進めることはできません。</p>
         <p>これを繰り返し、できるだけ少ないターン数で2～12のうちどれか3つをゴールさせてください。</p>
     </div>

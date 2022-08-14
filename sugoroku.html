@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>すごろく</title>
+    <style>
+        #board {
+            width: 500px;
+            height: 500px;
+            margin: 30px;
+            float: left;
+        }
+
+        #dices {
+            position: absolute;
+            left: 250px;
+            top: 270px;
+            width: 50px;
+            height: 50px;
+            border: solid 1px;
+            border-radius: 5px;
+            margin: 10px;
+            float: left;
+        }
+    </style>
+    <script>
+        class Dice {
+            min;
+            max;
+            num;
+
+            constructor(_min = 1, _max = 6) {
+                this.min = _min;
+                this.max = _max;
+                this.num = -1;
+            }
+
+            getnum() {
+                return this.num;
+            }
+
+            roll() {
+                this.num = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
+                return this.num;
+            }
+
+            rollSum(times) {
+                let result = 0;
+                for (let i = 0; i < times; i++) {
+                    result += this.roll();
+                }
+                return result;
+            }
+
+            rollArray(times) {
+                let result = [];
+                for (let i = 0; i < times; i++) {
+                    result.push(this.roll());
+                }
+                return result;
+            }
+        }
+
+        class DiceHtml extends Dice {
+            //svgはdivで挟むとなぜかサイズが小さいときにズレるので直接定義
+            static baseHTML = `
+                <div style="float:left;width:100%;height:5%;"></div>
+                <div style="float:left;width:5%;height:30%;"></div>
+                <svg style="float:left;width:30%;height:30%;" class="dice dicepiece0" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"></svg>
+                <svg style="float:left;width:30%;height:30%;" class="dice dicepiece1" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"></svg>
+                <svg style="float:left;width:30%;height:30%;" class="dice dicepiece2" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"></svg>
+                <div style="float:left;width:5%;height:30%;"></div>
+                <div style="float:left;width:5%;height:30%;"></div>
+                <svg style="float:left;width:30%;height:30%;" class="dice dicepiece3" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"></svg>
+                <svg style="float:left;width:30%;height:30%;" class="dice dicepiece4" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"></svg>
+                <svg style="float:left;width:30%;height:30%;" class="dice dicepiece5" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"></svg>
+                <div style="float:left;width:5%;height:30%;"></div>
+                <div style="float:left;width:5%;height:30%;"></div>
+                <svg style="float:left;width:30%;height:30%;" class="dice dicepiece6" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"></svg>
+                <svg style="float:left;width:30%;height:30%;" class="dice dicepiece7" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"></svg>
+                <svg style="float:left;width:30%;height:30%;" class="dice dicepiece8" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"></svg>
+                <div style="float:left;width:5%;height:30%;"></div>
+                <div style="float:left;width:100%;height:5%;"></div>
+                <div style="clear:both;width:0;height:0;"></div>
+            `;
+
+
+            static pieceSVG = [
+                '',
+                '<circle cx="50" cy="50" r="30" fill="black" />',
+                '<circle cx="50" cy="50" r="50" fill="red" />',
+            ];
+
+            static dicenum = [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 2, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 1, 0, 0],
+                [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                [1, 0, 1, 0, 0, 0, 1, 0, 1],
+                [1, 0, 1, 0, 1, 0, 1, 0, 1],
+                [1, 0, 1, 1, 0, 1, 1, 0, 1],
+            ];
+
+            id;
+            element;
+
+            constructor(_id) {
+                super(1, 6);
+                this.id = _id;
+                this.element = document.getElementById(_id);
+                this.element.innerHTML = DiceHtml.baseHTML;
+            }
+
+            roll() {
+                let result = super.roll();
+                this.setdice(result);
+                return result;
+            }
+
+            async rollview(times = 100) {
+                let result;
+                for (let i = 0; i < times; i++) {
+                    result = this.roll();
+                    await new Promise(s => setTimeout(s, 10));
+                }
+                return result;
+            }
+
+            //1個のダイス表示と結びついているので1個分だけ
+            rollSum(times) {
+                return this.roll();
+            }
+
+            //1個のダイス表示と結びついているので1個分だけ
+            rollArray(times) {
+                let result = [];
+                result.push(this.roll());
+                return result;
+            }
+
+            setdice(num) {
+                if (num < 1 || num > 6) return;
+                let elementarr = [];
+                for (let i = 0; i < 9; i++) {
+                    this.element.getElementsByClassName('dicepiece' + i)[0].innerHTML = DiceHtml.pieceSVG[DiceHtml.dicenum[num][i]];
+                }
+            }
+        }
+
+        //C言語でいうprintf関数的なやつ
+        const printf = function (str, args) {
+            return str.replace(/{(\d+)}/g, function (match, number) {
+                return typeof args[number] != 'undefined' ? args[number] : match;
+            });
+        }
+
+        const getpos = function (pos) {
+            let x = 250 + (220 * Math.cos(((Math.PI * 1.5)) + ((Math.PI / 15) * pos)));
+            let y = 250 + (220 * Math.sin(((Math.PI * 1.5)) + ((Math.PI / 15) * pos)));
+            return [x, y];
+        }
+
+        window.addEventListener('DOMContentLoaded', async (event) => {
+            let output = document.getElementById('output');
+            let dice = new DiceHtml('dices');
+            let board = document.getElementById('baseboard');
+            let r = 20;
+            let p = 0;
+            let e = 0;
+            let circle = '<circle id="{0}" cx="{1}" cy="{2}" r="{3}" style="fill:{4};stroke:{5};stroke-width:3;" />';
+
+            for (let i = 0; i < 30; i++) {
+                let pos = getpos(i);
+                if (i === 0) {
+                    board.innerHTML += printf(circle, ['c' + i, pos[0], pos[1], r, 'white', 'red']);
+                } else {
+                    board.innerHTML += printf(circle, ['c' + i, pos[0], pos[1], r, 'white', 'black']);
+                }
+            }
+
+            let epos = getpos(e);
+            let ppos = getpos(p);
+
+            board.innerHTML += printf(circle, ['enemy', epos[0], epos[1], r, 'yellow', 'black']);
+            board.innerHTML += printf(circle, ['player', ppos[0], ppos[1], r, 'blue', 'black']);
+
+            let turn = 0;
+            while (true) {
+                if (turn % 2 === 0) {
+                    output.innerHTML = 'あなたの番です';
+                    let d = await dice.rollview(50);
+                    for (let i = 1; i <= d; i++) {
+                        let ppi = document.getElementById('player');
+                        ppi.remove();
+                        let pos = getpos(p + i);
+                        board.innerHTML += printf(circle, ['player', pos[0], pos[1], r, 'blue', 'black']);
+                        await new Promise(s => setTimeout(s, 500));
+                    }
+                    p = (p + d) % 30;
+                    if(p === 0) {
+                        output.innerHTML = 'おめでとうございます！あなたの勝ちです。';
+                        break;
+                    }
+                    turn++;
+                } else {
+                    output.innerHTML = '相手の番です';
+                    let d = await dice.rollview(50);
+                    for (let i = 1; i <= d; i++) {
+                        let epi = document.getElementById('enemy');
+                        epi.remove();
+                        let pos = getpos(e + i);
+                        board.innerHTML += printf(circle, ['enemy', pos[0], pos[1], r, 'yellow', 'black']);
+                        await new Promise(s => setTimeout(s, 500));
+                    }
+                    e = (e + d) % 30;
+                    if(e === 0) {
+                        output.innerHTML = '残念でした、あなたの負けです。';
+                        break;
+                    }
+                    turn++;
+                }
+                await new Promise(s => setTimeout(s, 10));
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <div id="output"></div>
+    <div id="dices">
+    </div>
+    <div id="board">
+        <svg id="baseboard" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"
+            viewBox="0 0 500 500">
+        </svg>
+    </div>
+</body>
+
+</html>
