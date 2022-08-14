@@ -598,6 +598,10 @@
                     draw();
                 } else if (ispush === 6) {
                     ispush = -1;
+                    isenable = [false, false, false, false, false, false, false, false];
+                    selb[6].innerText = '選択できません';
+                    selb[7].innerText = '選択できません';
+                    setbutton();
 
                     await diceroll();
 
@@ -615,6 +619,7 @@
 
                         //失敗メッセージを表示
                         output.innerText = '進めなくなったので、このターンの進行は無効になりました。次のターンを押してください。';
+                        selb[6].innerText = '選択できません';
                         selb[7].innerText = '次のターン';
 
                         for (let i = 0; i < pieces.length; i++) {
@@ -677,6 +682,8 @@
 
                         //一旦ボタンは全部無効
                         isenable = [false, false, false, false, false, false, false, false];
+                        selb[6].innerText = '選択できません';
+                        selb[7].innerText = '選択できません';
                         setbutton();
 
                         //ピースの固定処理と初期化(ドボンの時は固定前の駒位置は0のはず)
@@ -709,12 +716,38 @@
                             turn++;
                             //ダイスを振る処理
                             await diceroll();
-                            isenable[6] = false;
-                            isenable[7] = false;
-                            output.innerText = turn + 'ターン目です。進める組み合わせを選んでください。';
-                            for (let i = 0; i < 3; i++) {
-                                selp[i].classList.remove('selpaneldisable');
+
+                            //押せるボタンの数をカウント
+                            let count = 0;
+                            for (let i = 0; i < 6; i++) {
+                                if (isenable[i]) count++;
                             }
+
+                            if (count === 0) {
+                                //固定前の配列を初期化
+                                deepcopy(piecepos, cleararr);
+
+                                //失敗メッセージを表示
+                                output.innerText = '進めないので、このターンは無効になりました。次のターンを押してください。';
+                                selb[7].innerText = '次のターン';
+
+                                for (let i = 0; i < pieces.length; i++) {
+                                    pieces[i] = 0;
+                                }
+                                for (let i = 0; i < 3; i++) {
+                                    selp[i].classList.add('selpaneldisable');
+                                }
+                                isenable[6] = false;
+                                isenable[7] = true;
+                            } else {
+                                output.innerText = turn + 'ターン目です。進める組み合わせを選んでください。';
+                                for (let i = 0; i < 3; i++) {
+                                    selp[i].classList.remove('selpaneldisable');
+                                }
+                                isenable[6] = false;
+                                isenable[7] = false;
+                            }
+
                         }
                     }
 
