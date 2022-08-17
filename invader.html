@@ -1,0 +1,765 @@
+<any>0;/*</any>
+<style>
+    any {
+        display: none;
+    }
+</style>
+<!--
+<%
+//プリプロセッサ
+let ejsdata = {};
+
+
+
+%>
+<% let echostr = ''; %>
+<% if (false) { %>
+-->
+<!-- start -->
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #invader {
+            border: solid 1px;
+        }
+
+        #canvas {
+            position: relative;
+            left: 0px;
+            height: 0px;
+            width: 480px;
+            height: 480px;
+        }
+
+        #output {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 480px;
+            height: 40px;
+            text-align: center;
+            color: black;
+            font-size: 40px;
+            z-index: 2;
+        }
+    </style>
+    <title>インベーダーもどき</title>
+</head>
+
+<body>
+
+    <div id="canvas">
+        <canvas id="invader" width="480" height="480"></canvas>
+    </div>
+    <div id="output">クリックしてスタート</div>
+
+
+    <!-- end -->
+    <textarea id="__typescriptcode" style="display:none;">
+    //<!-- cstart -->
+/**/
+type GameKeys = {
+    [index: string]: boolean;
+}
+
+type MousePos = {
+    x: number,
+    y: number
+}
+
+class GameBase {
+    gamestate: number = 0;
+    gameobj: Array<GameObject> = [];
+    canvas: HTMLCanvasElement | null = null;
+    ctx: CanvasRenderingContext2D | null = null;
+    pkey: GameKeys = {};
+    mousex: number = -1;
+    mousey: number = -1;
+    clickx: number = -1;
+    clicky: number = -1;
+    frame: number = 0;
+
+    constructor(canvas: HTMLCanvasElement | string | null) {
+        let _self = this;
+        if (typeof (canvas) === 'string') {
+            let canvasstr = canvas;
+            canvas = document.getElementById(canvasstr) as HTMLCanvasElement | null;
+            if (canvas === null) {
+                window.addEventListener('DOMContentLoaded', e => {
+                    canvas = document.getElementById(canvasstr) as HTMLCanvasElement | null;
+                    if (canvas !== null) _self.__init(canvas);
+                });
+                return;
+            }
+        }
+        if (canvas !== null) _self.__init(canvas);
+    }
+
+    __init(canvas: HTMLCanvasElement): void {
+        const ctx = canvas.getContext('2d');
+        this.canvas = canvas;
+        if (ctx != null) {
+            this.ctx = ctx;
+            this.pkey = {};
+            this.mousex = -1;
+            this.mousey = -1;
+            this.clickx = -1;
+            this.clicky = -1;
+            let _self = this;
+            document.addEventListener('keydown', e => {
+                let key = e.key === ' ' ? 'space' : e.key.toLowerCase();
+                if (!e.repeat) _self.pkey[key] = true;
+            });
+            document.addEventListener('keyup', e => {
+                let key = e.key === ' ' ? 'space' : e.key.toLowerCase();
+                if (!e.repeat) _self.pkey[key] = false;
+            });
+            document.addEventListener('mousemove', e => {
+                _self.mousex = e.clientX - canvas.offsetLeft;
+                _self.mousey = e.clientY - canvas.offsetTop;
+            });
+            document.addEventListener('mousedown', e => {
+                _self.pkey['mouse'] = true;
+                _self.clickx = e.clientX - canvas.offsetLeft;
+                _self.clicky = e.clientY - canvas.offsetTop;
+            });
+            document.addEventListener('mouseup', e => {
+                _self.pkey['mouse'] = false;
+            });
+            this.gamestate = 0;
+            this.gameobj = [];
+            this.onStart();
+            this.__draw();
+        }
+    }
+
+    __draw(): void {
+        if (this.ctx === null || this.canvas === null) return;
+        this.frame = (this.frame + 1) % 100000000;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas?.height);
+        this.onDraw(this.canvas, this.ctx, this.gamestate);
+        requestAnimationFrame(this.__draw.bind(this));
+    }
+
+    addObject(obj: GameObject): void {
+        this.gameobj.push(obj);
+    }
+
+    removeObject(obj: GameObject): void {
+        if (this.gameobj.indexOf(obj) > -1) {
+            this.gameobj.splice(this.gameobj.indexOf(obj), 1);
+        }
+    }
+
+    getFrame(): number {
+        return this.frame;
+    }
+
+    getKey(key: string, repeat: boolean = false): boolean {
+        let result = this.pkey[key.toLowerCase()];
+        if (!repeat) this.pkey[key.toLowerCase()] = false;
+        return result;
+    }
+
+    clearKey(key: string): void {
+        this.pkey[key.toLowerCase()] = false;
+    }
+
+    getMousePos(): MousePos {
+        return { x: this.mousex, y: this.mousey };
+    }
+
+    getClickPos(): MousePos {
+        return { x: this.clickx, y: this.clicky };
+    }
+
+    onStart() {
+    }
+
+    onDraw(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, gamestate: number): void {
+        if (!Array.isArray(this.gameobj) || this.gameobj.length === 0) return;
+        this.gameobj.forEach(obj => obj.draw(canvas, ctx, gamestate));
+    }
+
+    playObject(obj: HTMLAudioElement): void {
+        obj.play;
+    }
+
+    playBase64(music: string): HTMLAudioElement {
+        const datauri = 'data:audio/mp3;base64,' + music;
+        const sound = new Audio(datauri);
+        sound.play();
+        return sound;
+    }
+
+    playURL(url: string): HTMLAudioElement {
+        const sound = new Audio(url);
+        sound.play();
+        return sound;
+    }
+}
+
+class GameObject {
+    x: number
+    y: number
+    w: number
+    h: number
+    state: number
+    parent: GameBase
+
+    constructor(_p: GameBase, _x: number, _y: number, _w: number, _h: number, _s: number) {
+        this.parent = _p;
+        this.x = _x;
+        this.y = _y;
+        this.w = _w;
+        this.h = _h;
+        this.state = _s;
+    }
+
+    draw(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, gamestate: number): void {
+    }
+
+    drawRect(ctx: CanvasRenderingContext2D, color: string, fill: boolean = false): void {
+        ctx.beginPath();
+        ctx.rect(this.x, this.y, this.w, this.h);
+        if (fill) {
+            ctx.fillStyle = color;
+            ctx.fill();
+        } else {
+            ctx.strokeStyle = color;
+            ctx.stroke();
+        }
+        ctx.closePath();
+    }
+
+    drawEllipse(ctx: CanvasRenderingContext2D, color: string, fill: boolean = false): void {
+        ctx.beginPath();
+        ctx.ellipse(this.x + (this.w / 2), this.y + (this.h / 2), this.w / 2, this.h / 2, 0, 0, Math.PI * 2);
+        if (fill) {
+            ctx.fillStyle = color;
+            ctx.fill();
+        } else {
+            ctx.strokeStyle = color;
+            ctx.stroke();
+        }
+        ctx.closePath();
+    }
+
+    get top(): number {
+        return this.y;
+    }
+
+    get bottom(): number {
+        return this.y + this.h;
+    }
+
+    get left(): number {
+        return this.x;
+    }
+
+    get right(): number {
+        return this.x + this.w;
+    }
+
+    static isCollision(a: GameObject, b: GameObject, t: number = -1): boolean {
+        if (b.left <= a.right &&
+            a.left <= b.right &&
+            b.top <= a.bottom &&
+            a.top <= b.bottom) {
+
+            //めり込み解消
+            if (t === 0) {
+                //y方向
+                //めり込み具合でどっちから当たったか判別
+                if ((a.right - b.left) - (b.right - a.left) >= 0) {
+                    //左から
+                    b.x = a.x - b.w - 1
+                } else {
+                    //右から
+                    b.x = a.x + a.w + 1
+                }
+            } else if (t === 1) {
+                //x方向
+                //めり込み具合でどっちから当たったか判別
+                if ((a.bottom - b.top) - (b.bottom - a.top) >= 0) {
+                    //上から
+                    b.y = a.y - b.h - 1
+                } else {
+                    //下から
+                    b.y = a.y + a.h + 1
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+}
+
+class CollisionBase {
+    bullet: Array<PlayerBullet> = [];
+
+    isCollision(obj: GameObject): boolean {
+        let result = false;
+
+        this.bullet.forEach(bul => {
+            if (GameObject.isCollision(obj, bul)) {
+                result = true;
+                this.removeBullet(bul);
+            }
+        });
+
+        return result;
+    }
+
+    addBullet(_bullet: Bullet): void {
+        this.bullet.push(_bullet);
+    }
+
+    removeBullet(_bullet: Bullet): void {
+        if (this.bullet.indexOf(_bullet) > -1) {
+            this.bullet.splice(this.bullet.indexOf(_bullet), 1);
+            _bullet.remove();
+        }
+    }
+}
+
+class Bullet extends GameObject {
+    speed: number = 1;
+    move: number = 10;
+    col: CollisionBase;
+
+    constructor(_p: GameBase, _x: number, _y: number, _w: number, _h: number, _s: number, _col: CollisionBase) {
+        super(_p, _x, _y, _w, _h, _s);
+        this.col = _col;
+        this.col.addBullet(this);
+        this.parent.addObject(this);
+    }
+
+    draw(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, gamestate: number): void {
+        this.drawEllipse(ctx, 'black', false);
+    }
+
+    remove(): void {
+        this.col.removeBullet(this);
+        this.parent.removeObject(this);
+    }
+
+    isMove(): boolean {
+        return this.parent.getFrame() % this.speed === 0;
+    }
+}
+
+class EnemyBullet extends Bullet {
+    draw(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, gamestate: number): void {
+        super.draw(canvas, ctx, gamestate);
+        if (this.isMove()) {
+            this.y = this.y + this.move;
+        }
+        if (this.y > canvas.height) {
+            this.remove();
+        }
+    }
+}
+
+class PlayerBullet extends Bullet {
+    draw(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, gamestate: number): void {
+        super.draw(canvas, ctx, gamestate);
+        if (this.isMove()) {
+            this.y = this.y - this.move;
+        }
+        if (this.y < 0) {
+            this.remove();
+        }
+    }
+}
+
+class Invader extends GameObject {
+    static count: number = 0;
+    static movemode: number = 0;  //0:右へ 1:右端で下がる 2:左へ 3:左端で下がる の繰り返し
+    static changeframe: number = 0;
+    static movechange: boolean = false;
+    static move: number = 10;
+    static levelupframe: number = 0;
+    static levelspeed: Array<number> = [100, 50, 30, 20, 10, 5];
+    static levelup: Array<number> = [40, 30, 20, 10, 5, -1];
+    static islevelup: boolean = false;
+    static level: number = 0;
+    pcol: CollisionBase;
+    ecol: CollisionBase;
+
+    constructor(_p: GameBase, _x: number, _y: number, _w: number, _h: number, _s: number, _pcol: CollisionBase, _ecol: CollisionBase) {
+        super(_p, _x, _y, _w, _h, _s);
+        this.pcol = _pcol;
+        this.ecol = _ecol;
+        Invader.count++;
+    }
+
+    static InvaderInit() {
+        Invader.count = 0;
+        Invader.movemode = 0;
+        Invader.movechange = false;
+        Invader.level = 0;
+        Invader.islevelup = false;
+        Invader.changeframe = 0;
+        Invader.levelupframe = 0;
+    }
+
+    draw(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, gamestate: number): void {
+        if (this.parent.gamestate === 1) {
+            if (this.ecol.isCollision(this)) {
+                this.parent.removeObject(this);
+                Invader.count--;
+                if (Invader.count <= Invader.levelup[Invader.level]) {
+                    Invader.islevelup = true;
+                    Invader.levelupframe = this.parent.frame;
+                }
+                if (Invader.count <= 0) {
+                    (document.getElementById('output') as HTMLElement).innerText = 'クリアです';
+                    this.parent.gamestate = 3;
+                }
+                return;
+            }
+            if (Invader.islevelup && Invader.levelupframe < this.parent.frame) {
+                Invader.level++;
+                Invader.islevelup = false;
+            }
+            if (this.parent.frame % Invader.levelspeed[Invader.level] === 0) {
+                if (Invader.movechange && Invader.changeframe < this.parent.frame) {
+                    Invader.movemode = (Invader.movemode + 1) % 4;
+                    Invader.movechange = false;
+                }
+                switch (Invader.movemode) {
+                    case 0:   //右に移動
+                        this.x += Invader.move;
+                        //次移動したら当たりそうなら次は下に下がる
+                        if (this.x + this.w + Invader.move > canvas.width) {
+                            Invader.movechange = true;
+                            Invader.changeframe = this.parent.frame;
+                        }
+                        break;
+                    case 2:    //左に移動
+                        this.x -= Invader.move;
+                        if (this.x - Invader.move < 0) {
+                            Invader.movechange = true;
+                            Invader.changeframe = this.parent.frame;
+                        }
+                        break;
+                    case 1:    //下に移動
+                    case 3:
+                        this.y += this.h;
+                        Invader.movechange = true;
+                        Invader.changeframe = this.parent.frame;
+                        if(this.y + this.h > 450) {
+                            (document.getElementById('output') as HTMLElement).innerText = 'ゲームオーバー';
+                            this.parent.gamestate = 3;        
+                        }
+                }
+            }
+
+            if (Math.floor(Math.random() * 1000) === 0) {
+                if (this.pcol.bullet.length < 3) {
+                    new EnemyBullet(this.parent, this.x + (this.w / 2), this.y + this.h, 5, 5, 0, this.pcol);
+                }
+            }
+        }
+
+        this.drawEllipse(ctx, 'black', true);
+    }
+}
+
+class Player extends GameObject {
+    count: number = 5;
+    speed: number = 10;
+    pcol: CollisionBase;
+    ecol: CollisionBase;
+
+    constructor(_p: GameBase, _x: number, _y: number, _w: number, _h: number, _s: number, _pcol: CollisionBase, _ecol: CollisionBase) {
+        super(_p, _x, _y, _w, _h, _s);
+        this.pcol = _pcol;
+        this.ecol = _ecol;
+    }
+
+    draw(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, gamestate: number): void {
+        if (this.parent.gamestate === 1) {
+            if (this.parent.getKey('arrowleft', true)) {
+                if (this.x - this.speed < 0) {
+                    this.x = 0;
+                } else {
+                    this.x -= this.speed;
+                }
+            }
+            if (this.parent.getKey('arrowright', true)) {
+                if (this.x + this.w + this.speed > canvas.width) {
+                    this.x = canvas.width - this.w;
+                } else {
+                    this.x += this.speed;
+                }
+            }
+            if (this.parent.getKey('enter') || this.parent.getKey('space')) {
+                if (this.ecol.bullet.length < 1) {
+                    new PlayerBullet(this.parent, this.x + (this.w / 2), this.y, 5, 5, 0, this.ecol);
+                }
+            }
+
+            if (this.pcol.isCollision(this)) {
+                this.count--;
+                if (this.count < 0) {
+                    (document.getElementById('output') as HTMLElement).innerText = 'ゲームオーバー';
+                    this.parent.gamestate = 3;
+                }
+                return;
+            }
+        } else if (this.parent.gamestate === 0 || this.parent.gamestate === 3) {
+            if (this.parent.getKey('mouse')) {
+                (document.getElementById('output') as HTMLElement).innerText = '';
+                if (this.parent.gamestate === 3) (this.parent as InvaderGame).init();
+                this.parent.gamestate = 1;
+            }
+        }
+        if (this.count < 1) {
+            this.drawRect(ctx, 'red', true);
+        } else if (this.count < 3) {
+            this.drawRect(ctx, 'yellow', true);
+        } else {
+            this.drawRect(ctx, 'black', true);
+        }
+    }
+}
+
+class InvaderGame extends GameBase {
+    constructor(canvas: string | HTMLCanvasElement | null) {
+        super(canvas);
+    }
+
+    init() {
+        Invader.InvaderInit();
+        this.gameobj = [];
+        this.gamestate = 0;
+        let pcol = new CollisionBase();
+        let ecol = new CollisionBase();
+        let player = new Player(this, 220, 450, 40, 20, 0, pcol, ecol);
+        for (let i: number = 0; i < 5; i++) {
+            for (let j: number = 0; j < 10; j++) {
+                this.addObject(new Invader(this, (j * 40) + 30, (i * 40) + 80, 30, 30, 0, pcol, ecol));
+            }
+        }
+        this.addObject(player);
+    }
+
+    onStart() {
+        this.init();
+    }
+}
+
+new InvaderGame('invader');
+
+//<!-- end -->//</textarea>
+<any>0;/*</any>
+    <!-- fstart -->
+    <script src="https://cdn.jsdelivr.net/npm/@babel/polyfill@latest/dist/polyfill.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@latest/babel.min.js"></script>
+    <script>
+        //クライアントサイドトランスパイラ
+        //ブラウザでトランスパイルする(そうしないとDevToolでデバッグ出来ない)
+        //Babel Standaloneの設定(TypeScriptプリセット使用)
+        Babel.registerPreset('ts-plus', {
+            presets: [
+                [Babel.availablePresets['typescript'], { 'allExtensions': true, 'loose': true }]
+            ]
+        });
+        //JavaScriptにトランスパイル
+        let __transcode = Babel.transform(document.getElementById("__typescriptcode").textContent, { presets: ["ts-plus"] }).code;
+        //トランスパイルしたコードを動作させるためのScriptタグを設定
+        var __scriptelem = document.createElement("script");
+        __scriptelem.type = "text/javascript";
+        //最後に「//#sourceURL='ファイル名'」というコメントを追加すると動的に追加したJavaScriptコードもデバッグの対象にできる。
+        __scriptelem.textContent = __transcode + "\n" + '/' + '/' + '# sourceURL=' + location.pathname + '.js';
+        //scriptタグを追加してトランスパイルしたJavaScriptを動作させる
+        document.body.appendChild(__scriptelem);
+    </script>
+    <!-- end -->
+    <!-- start -->
+</body>
+
+</html>
+<!-- end -->
+<!--
+<%
+} else {
+    //サーバーサイドトランスパイラ
+    let directory = 'compile';       //出力ディレクトリ
+    let compile = false;             //ファイルに出力
+    let translate = false;           //JavaScriptにトランスパイル
+    let insertscripttag = false;     //別のJavaScriptを指すscriptタグを出力
+    let suffix = '';                 //出力ファイルの拡張子
+    let afpattern = [];              //削除パターン
+    let usecode = false;             //TypeScript(JavaScript)コードを出力
+    let usehtml = false;             //HTMLを出力
+    let usefootscript = false;       //ブラウザでトランスパイルするコードを出力
+    let scripttag = ['', ''];        //コード部分に適用するタグの設定
+
+    if (request.query.compile === 'html') {
+        //TypeScriptコード(Babel Standaloneトランスパイル用コードも)含むHTMLファイルを出力
+        compile = true;
+        usecode = true;
+        usehtml = true;
+        usefootscript = true;
+        scripttag = ['<textarea id="__typescriptcode" style="display:none;">', '</textarea>'];
+        afpattern = [/\/\*\*\//g];
+        suffix = '.html';
+    } else if (request.query.compile === 'htmljs') {
+        //トランスパイルしたJavaScriptコードを含むHTMLファイルを出力
+        compile = true;
+        usecode = true;
+        usehtml = true;
+        translate = true;
+        scripttag = ['<script type="text/javascript">', '</script>'];
+        afpattern = [/\/\*\*\//g];
+        suffix = '.html';
+    } else if (request.query.compile === 'htmljstag') {
+        //<script src="ファイル名.js">を含むHTMLファイルを出力(JavaScriptコードは別に要出力)
+        compile = true;
+        usehtml = true;
+        insertscripttag = true;
+        suffix = '.html';
+    } else if (request.query.compile === 'htmlonly') {
+        //HTML部分のみをファイルに出力
+        compile = true;
+        usehtml = true;
+        suffix = '.html';
+    } else if (request.query.compile === 'typescript') {
+        //TypeScriptコード部分のみファイルに出力
+        compile = true;
+        usecode = true;
+        afpattern = [/\/\*\*\//g];
+        suffix = '.ts';
+    } else if (request.query.compile === 'javascript') {
+        //トランスパイルしたJavaScriptコードをファイルに出力
+        compile = true;
+        translate = true;
+        usecode = true;
+        afpattern = [/\/\*\*\//g];
+        suffix = '.js';
+    } else {
+        //EJSコードを削除したHTMLをブラウザに表示
+        usecode = true;
+        usehtml = true;
+        usefootscript = true;
+        scripttag = ['<textarea id="__typescriptcode" style="display:none;">', '</textarea>'];
+    }
+
+    //自分自身のファイルを読み込み
+    let source = fs.readFileSync(__FILE__, 'utf-8').toString();
+
+    //HTMLコメントの前の//を除去
+    source = source.replaceAll(/\/\/([<]!--)/g, '$1');
+
+    //特殊コメントをEJSタグに置換
+    source = source.replaceAll(/\/\*%/g, '<' + '%');
+    source = source.replaceAll(/%\*\/([a-zA-Z0-9_]*)/g, '%' + '>');
+    source = source.replaceAll(/[<]!--%/g, '<' + '%');
+    source = source.replaceAll(/%--[>]/g, '%' + '>');
+
+    let htmlcode = source;
+    let output = '';
+
+    if (usehtml) {
+        //HTML相当のコードを抜き出す
+        if (usecode || insertscripttag) {
+            //あとでTypeScriptやJavaScriptコードを挿入できるようにマーク文字列を埋め込み
+            htmlcode = htmlcode.replace(/[<]!-- cstart --[>]/, '<' + '!-- start --' + '>[*script*]<' + '!-- end --' + '>');
+            htmlcode = htmlcode.replace(/[<]!-- fstart --[>]/, '<' + '!-- start --' + '>[*fscript*]<' + '!-- end --' + '>');
+        }
+
+        //HTMLコメントの前の//を除去
+        htmlcode = htmlcode.replaceAll(/\/\/([<]!--)/g, '$1');
+
+        //HTMLコードを抜き出す
+        let matches = htmlcode.matchAll(/[<]!-- start --[>](.*?)[<]!-- end --[>]/sg);
+
+        for (const value of matches) {
+            output += value[1];
+        }
+    }
+
+    if (insertscripttag) {
+        //マークを付けた所にscriptタグを埋め込む
+        output = output.replace(/\[\*(script.*?\/script)\*\]/, '<$1>');
+        output = output.replace(/\[\*fscript\*\]/, '');
+    } else if (usecode) {
+        let tscode = '';
+
+        //TypeScriptコードを抜き出す
+        let matches = source.match(/[<]!-- cstart --[>](.*?)[<]!-- end --[>]/s);
+        tscode = matches[1];
+
+        //事前に設定した余分なコードの除去
+        for (const pattern of afpattern) {
+            tscode = tscode.replaceAll(pattern, '');
+        }
+
+        //必要ならTypeScriptからJavaScriptにトランスパイル
+        if (translate) {
+            tscode = babel.transform(tscode, { 'targets': 'defaults', 'plugins': [['@babel/plugin-transform-typescript', { 'allExtensions': true, 'loose': true }]], presets: ['@babel/env'] }).code
+        }
+
+        if (usehtml) {
+            //TypeScriptコードまたはJavaScriptコードをHTMLに埋め込む
+            if (!insertscripttag) {
+                output = output.replace(/\[\*script\*\]/, scripttag[0] + "\n" + tscode + "\n" + scripttag[1]);
+            }
+            if (usefootscript) {
+                //ブラウザでトランスパイルするコードを埋め込む
+                let footer;
+                let matches = source.match(/[<]!-- fstart --[>](.*?)[<]!-- end --[>]/s);
+                footer = matches[1];
+                output = output.replace(/\[\*fscript\*\]/, footer);
+            } else {
+                //コードを出力しないのでマークだけ除去
+                output = output.replace(/\[\*fscript\*\]/, '');
+            }
+        } else {
+            //HTMLは出力しないのでそのままTypeScriptまたはJavaScriptファイルを出力
+            output = tscode;
+        }
+    }
+
+    //前後の余分な空白を除去
+    output = output.trim();
+
+    //EJSコードの変換
+    output = (ejs.compile(output, { client: true }))(ejsdata);
+
+    if (compile) {
+        //ファイルに出力
+        //自身のファイル情報を取得
+        let path_parts = path.parse(__FILE__);
+
+        if (insertscripttag) {
+            //別のJavaScriptファイルを参照するscriptタグを出力
+            output = output.replace(/\[\*script\*\]/, '<script src="./' + path_parts.name + '.js"></script>');
+        }
+
+        //出力用ディレクトリが存在しないときは作成する
+        if (!fs.existsSync(path_parts.dir + '/' + directory + '/')) {
+            fs.mkdir(path_parts.dir + '/' + directory + '/');
+        }
+
+        //設定した出力先ディレクトリに同名のファイルを書き込み
+        fs.writeFileSync(path_parts.dir + '/' + directory + '/' + path_parts.name + suffix, output, 'utf-8');
+
+        //書き込んだファイルのパスと書き込んだ旨のメッセージを出力
+        echostr = '-' + '-' + '>' + path_parts.dir + '/' + directory + '/' + path_parts.name + suffix + '　にファイルを作成しました。' + '<' + '!' + '-' + '-';
+    } else {
+        //そのままブラウザに出力
+        echostr = '-' + '-' + '>' + output + '<' + '!' + '-' + '-';
+    }
+}
+%>
+<%- echostr %>
+-->
+<!--*/ //-->
