@@ -2,246 +2,247 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
-    <title>マインスイーパー</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        table {
-            border-collapse: collapse;
-            border: solid 5px;
+  <meta charset="UTF-8">
+  <title>マインスイーパー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    table {
+      border-collapse: collapse;
+      border: solid 5px;
+    }
+
+    tr {
+      margin: 0;
+      padding: 0;
+    }
+
+    .cell {
+      margin: 0;
+      padding: 0;
+      width: 50px;
+      height: 50px;
+      border: solid 1px;
+      font-size: 36px;
+      text-align: center;
+      line-height: 0;
+    }
+  </style>
+  <script type="module">
+    import 'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js';
+
+    //初期状態の盤配列
+    let initboard = [
+      [9, 9, 9, 9, 9, 9, 9, 9, 9],
+      [9, 9, 9, 9, 9, 9, 9, 9, 9],
+      [9, 9, 9, 9, 9, 9, 9, 9, 9],
+      [9, 9, 9, 9, 9, 9, 9, 9, 9],
+      [9, 9, 9, 9, 9, 9, 9, 9, 9],
+      [9, 9, 9, 9, 9, 9, 9, 9, 9],
+      [9, 9, 9, 9, 9, 9, 9, 9, 9],
+      [9, 9, 9, 9, 9, 9, 9, 9, 9],
+      [9, 9, 9, 9, 9, 9, 9, 9, 9],
+    ];
+
+    //0～8: 隣接する地雷の数　9:未探索　10:旗外れ 11:旗当たり 12:地雷未探索 13:地雷表示 14:旗外れ表示
+    //9と12(未探索)、10と11(旗状態)は表示上の見栄えを同じにすることで地雷の位置管理と状態管理を同じ配列で行えるようにする。
+    let board;
+    let isshow = ['', '1', '2', '3', '4', '5', '6', '7', '8', '', '〇', '〇', '', '☠', '×'];
+    let color = ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white', 'white', 'gray', 'yellow', 'yellow', 'gray', 'red', 'orange'];
+    let mines = 10;
+    let state = 0;
+    let clickobj = null;
+    let rightobj = null;
+    let issetmine = false;
+
+    //8方向のベクトル
+    const vecxs = [0, 1, 1, 1, 0, -1, -1, -1];
+    const vecys = [-1, -1, 0, 1, 1, 1, 0, -1];
+
+    const copyMatrix = function (base) {
+      const result = [];
+      for (const line of base) {
+        result.push([...line]);
+      }
+      return result;
+    };
+
+    //idからx,y位置を取得
+    const getIdPos = function (id) {
+      const result = { x: -1, y: -1 };
+      const match = id.match(/^c(\d+)_(\d+)$/);
+
+      if (match != null) {
+        result.x = parseInt(match[2]);
+        result.y = parseInt(match[1]);
+      }
+
+      return result;
+    }
+
+    //周囲の地雷の数を探索して設定(0のマスだった場合は再帰呼び出しで0ではないマスが出るまで探索)
+    let checkNum = function (x, y) {
+      if (board[y][x] === 9 || board[y][x] === 10) {
+        let num = 0;
+        for (let i = 0; i < 8; i++) {
+          let numx = x + vecxs[i];
+          let numy = y + vecys[i];
+          if (numx < 0 || numx >= board[0].length) continue;
+          if (numy < 0 || numy >= board.length) continue;
+          if (board[numy][numx] === 11 || board[numy][numx] === 12) num++;
         }
-
-        tr {
-            margin: 0;
-            padding: 0;
+        if (num === 0) {
+          board[y][x] = 0;
+          for (let i = 0; i < 8; i++) {
+            let numx = x + vecxs[i];
+            let numy = y + vecys[i];
+            if (numx < 0 || numx >= board[0].length) continue;
+            if (numy < 0 || numy >= board.length) continue;
+            checkNum(numx, numy);
+          }
+        } else {
+          board[y][x] = num;
         }
+      }
+    }
 
-        .cell {
-            margin: 0;
-            padding: 0;
-            width: 50px;
-            height: 50px;
-            border: solid 1px;
-            font-size: 36px;
-            text-align: center;
-            line-height: 0;
+    //クリアチェック
+    let clearcheck = function () {
+      for (let i = 0; i < board.length; i++) {
+        for (let j = 0; j < board[i].length; j++) {
+          if (board[i][j] === 9 || board[i][j] === 10 || board[i][j] >= 13) return false;
         }
-    </style>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
-    <script>
-        //初期状態の盤配列
-        let initboard = [
-            [9, 9, 9, 9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9],
-        ];
+      }
+      return true;
+    }
 
-        //0～8: 隣接する地雷の数　9:未探索　10:旗外れ 11:旗当たり 12:地雷未探索 13:地雷表示 14:旗外れ表示
-        //9と12(未探索)、10と11(旗状態)は表示上の見栄えを同じにすることで地雷の位置管理と状態管理を同じ配列で行えるようにする。
-        let board;
-        let isshow = ['', '1', '2', '3', '4', '5', '6', '7', '8', '', '〇', '〇', '', '☠', '×'];
-        let color = ['white', 'white', 'white', 'white', 'white', 'white', 'white', 'white', 'white', 'gray', 'yellow', 'yellow', 'gray', 'red', 'orange'];
-        let mines = 10;
-        let state = 0;
-        let clickobj = null;
-        let rightobj = null;
-        let issetmine = false;
-
-        //8方向のベクトル
-        const vecxs = [0, 1, 1, 1, 0, -1, -1, -1];
-        const vecys = [-1, -1, 0, 1, 1, 1, 0, -1];
-
-        const copyMatrix = function (base) {
-            const result = [];
-            for (const line of base) {
-                result.push([...line]);
-            }
-            return result;
-        };
-
-        //idからx,y位置を取得
-        const getIdPos = function (id) {
-            const result = { x: -1, y: -1 };
-            const match = id.match(/^c(\d+)_(\d+)$/);
-
-            if (match != null) {
-                result.x = parseInt(match[2]);
-                result.y = parseInt(match[1]);
-            }
-
-            return result;
+    let draw = function () {
+      for (let i = 0; i < board.length; i++) {
+        for (let j = 0; j < board[i].length; j++) {
+          $('#c' + i + '_' + j).text(isshow[board[i][j]]);
+          $('#c' + i + '_' + j).css('background-color', color[board[i][j]]);
         }
+      }
+    }
 
-        //周囲の地雷の数を探索して設定(0のマスだった場合は再帰呼び出しで0ではないマスが出るまで探索)
-        let checkNum = function (x, y) {
-            if (board[y][x] === 9 || board[y][x] === 10) {
-                let num = 0;
-                for (let i = 0; i < 8; i++) {
-                    let numx = x + vecxs[i];
-                    let numy = y + vecys[i];
-                    if (numx < 0 || numx >= board[0].length) continue;
-                    if (numy < 0 || numy >= board.length) continue;
-                    if (board[numy][numx] === 11 || board[numy][numx] === 12) num++;
+    let init = function () {
+      let boardobj = $('#board');
+      for (let i = 0; i < initboard.length; i++) {
+        boardobj.append('<tr id="r_' + i + '"></tr>');
+        for (let j = 0; j < initboard[i].length; j++) {
+          $('#r_' + i).append('<td class="cell" id="c' + i + '_' + j + '"></td>')
+        }
+      }
+
+      $('.cell').click(function () {
+        if (state === 1) clickobj = $(this);
+      });
+
+      $('.cell').contextmenu(function () {
+        if (state === 1) rightobj = $(this);
+        return false;
+      });
+    }
+
+    //地雷をセット
+    let setMine = function (posx, posy) {
+      for (let i = 0; i < mines; i++) {
+        while (true) {
+          let rnd = Math.floor(Math.random() * (board.length * board[0].length));
+          let rndx = rnd % board[0].length;
+          let rndy = Math.floor(rnd / board[0].length);
+          if (rndy === posy && rndx === posx) continue;
+          if (board[rndy][rndx] !== 9) continue;
+          board[rndy][rndx] = 12;
+          break;
+        }
+      }
+    }
+
+    let game = async function () {
+      while (true) {
+        switch (state) {
+          case 0:
+            board = copyMatrix(initboard);
+            state = 0;
+            clickobj = null;
+            rightobj = null;
+            issetmine = false;
+            draw();
+            state = 1;
+            $('#output').text('スタート');
+            break;
+          case 1:
+            if (clickobj !== null) {
+              let pos = getIdPos(clickobj.attr('id'));
+              if (!issetmine) {
+                setMine(pos.x, pos.y);
+                issetmine = true;
+              }
+              if (board[pos.y][pos.x] === 9) {
+                checkNum(pos.x, pos.y);
+              } else if (board[pos.y][pos.x] === 12) {
+                board[pos.y][pos.x] = 13;
+                for (let i = 0; i < board.length; i++) {
+                  for (let j = 0; j < board[i].length; j++) {
+                    if (board[i][j] === 10) board[i][j] = 14;
+                    if (board[i][j] === 12) board[i][j] = 13;
+                  }
                 }
-                if (num === 0) {
-                    board[y][x] = 0;
-                    for (let i = 0; i < 8; i++) {
-                        let numx = x + vecxs[i];
-                        let numy = y + vecys[i];
-                        if (numx < 0 || numx >= board[0].length) continue;
-                        if (numy < 0 || numy >= board.length) continue;
-                        checkNum(numx, numy);
-                    }
-                } else {
-                    board[y][x] = num;
-                }
+                $('#output').text('残念でした。');
+                state = 2;
+              }
+              if (clearcheck()) {
+                $('#output').text('おめでとうございます！すべての地雷を発見しました。');
+                state = 2;
+              }
+              draw();
+              clickobj = null;
+            } else if (rightobj !== null) {
+              let pos = getIdPos(rightobj.attr('id'));
+              if (board[pos.y][pos.x] === 9) {
+                board[pos.y][pos.x] = 10;
+              } else if (board[pos.y][pos.x] === 12) {
+                board[pos.y][pos.x] = 11;
+              } else if (board[pos.y][pos.x] === 10) {
+                board[pos.y][pos.x] = 9;
+              } else if (board[pos.y][pos.x] === 11) {
+                board[pos.y][pos.x] = 12;
+              }
+              if (clearcheck()) {
+                $('#output').text('おめでとうございます！すべての地雷を発見しました。');
+                state = 2;
+              }
+              draw();
+              rightobj = null;
             }
+            await new Promise(s => setTimeout(s, 100));
+            break;
+          case 2:
+            await new Promise(s => setTimeout(s, 100));
+            break;
         }
+      }
+    }
 
-        //クリアチェック
-        let clearcheck = function () {
-            for (let i = 0; i < board.length; i++) {
-                for (let j = 0; j < board[i].length; j++) {
-                    if (board[i][j] === 9 || board[i][j] === 10 || board[i][j] >= 13) return false;
-                }
-            }
-            return true;
-        }
-
-        let draw = function () {
-            for (let i = 0; i < board.length; i++) {
-                for (let j = 0; j < board[i].length; j++) {
-                    $('#c' + i + '_' + j).text(isshow[board[i][j]]);
-                    $('#c' + i + '_' + j).css('background-color', color[board[i][j]]);
-                }
-            }
-        }
-
-        let init = function () {
-            boardobj = $('#board');
-            for (let i = 0; i < initboard.length; i++) {
-                boardobj.append('<tr id="r_' + i + '"></tr>');
-                for (let j = 0; j < initboard[i].length; j++) {
-                    $('#r_' + i).append('<td class="cell" id="c' + i + '_' + j + '"></td>')
-                }
-            }
-
-            $('.cell').click(function () {
-                if (state === 1) clickobj = $(this);
-            });
-
-            $('.cell').contextmenu(function () {
-                if (state === 1) rightobj = $(this);
-                return false;
-            });
-        }
-
-        //地雷をセット
-        let setMine = function (posx, posy) {
-            for (let i = 0; i < mines; i++) {
-                while (true) {
-                    let rnd = Math.floor(Math.random() * (board.length * board[0].length));
-                    let rndx = rnd % board[0].length;
-                    let rndy = Math.floor(rnd / board[0].length);
-                    if (rndy === posy && rndx === posx) continue;
-                    if (board[rndy][rndx] !== 9) continue;
-                    board[rndy][rndx] = 12;
-                    break;
-                }
-            }
-        }
-
-        let game = async function () {
-            while (true) {
-                switch (state) {
-                    case 0:
-                        board = copyMatrix(initboard);
-                        state = 0;
-                        clickobj = null;
-                        rightobj = null;
-                        issetmine = false;
-                        draw();
-                        state = 1;
-                        $('#output').text('スタート');
-                        break;
-                    case 1:
-                        if (clickobj !== null) {
-                            let pos = getIdPos(clickobj.attr('id'));
-                            if (!issetmine) {
-                                setMine(pos.x, pos.y);
-                                issetmine = true;
-                            }
-                            if (board[pos.y][pos.x] === 9) {
-                                checkNum(pos.x, pos.y);
-                            } else if (board[pos.y][pos.x] === 12) {
-                                board[pos.y][pos.x] = 13;
-                                for (let i = 0; i < board.length; i++) {
-                                    for (let j = 0; j < board[i].length; j++) {
-                                        if (board[i][j] === 10) board[i][j] = 14;
-                                        if (board[i][j] === 12) board[i][j] = 13;
-                                    }
-                                }
-                                $('#output').text('残念でした。');
-                                state = 2;
-                            }
-                            if (clearcheck()) {
-                                $('#output').text('おめでとうございます！すべての地雷を発見しました。');
-                                state = 2;
-                            }
-                            draw();
-                            clickobj = null;
-                        } else if (rightobj !== null) {
-                            let pos = getIdPos(rightobj.attr('id'));
-                            if (board[pos.y][pos.x] === 9) {
-                                board[pos.y][pos.x] = 10;
-                            } else if (board[pos.y][pos.x] === 12) {
-                                board[pos.y][pos.x] = 11;
-                            } else if (board[pos.y][pos.x] === 10) {
-                                board[pos.y][pos.x] = 9;
-                            } else if (board[pos.y][pos.x] === 11) {
-                                board[pos.y][pos.x] = 12;
-                            }
-                            if (clearcheck()) {
-                                $('#output').text('おめでとうございます！すべての地雷を発見しました。');
-                                state = 2;
-                            }
-                            draw();
-                            rightobj = null;
-                        }
-                        await new Promise(s => setTimeout(s, 100));
-                        break;
-                    case 2:
-                        await new Promise(s => setTimeout(s, 100));
-                        break;
-                }
-            }
-        }
-
-        $('document').ready(function () {
-            init();
-            game();
-        });
-    </script>
+    $('document').ready(function () {
+      init();
+      game();
+    });
+  </script>
 </head>
 
 <body>
-    <div id="output">初期化しています。</div>
-    <table id="board">
-    </table>
-    <div id="instruction">
-        <p>遊び方</p>
-        <p>
-            数字を参考に地雷を避けつつマスをクリックしてください。<br>
-            右クリックで旗を立てる事が出来ます(黄色で表示)<br>
-            地雷マスだけ残してマスを全て開けるとクリアです。
-        </p>
-    </div>
+  <div id="output">初期化しています。</div>
+  <table id="board">
+  </table>
+  <div id="instruction">
+    <p>遊び方</p>
+    <p>
+      数字を参考に地雷を避けつつマスをクリックしてください。<br>
+      右クリックで旗を立てる事が出来ます(黄色で表示)<br>
+      地雷マスだけ残してマスを全て開けるとクリアです。
+    </p>
+  </div>
 </body>
 
 </html>

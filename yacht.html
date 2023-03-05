@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ヨット</title>
+  <style>
+    table {
+      border: solid 2px;
+      border-collapse: collapse;
+      margin-bottom: 5px;
+    }
+
+    .hand {
+      width: 150px;
+    }
+
+    .point {
+      width: 50px;
+      text-align: center;
+    }
+
+    td {
+      border: solid 1px;
+      border-left: solid 2px;
+    }
+
+    .instruction {
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .sheet {
+      border: solid 1px;
+      padding: 10px;
+      width: 200px;
+    }
+
+    .board {
+      width: 630px;
+      height: 150px;
+      margin-left: 20px;
+      border: solid 1px;
+      border-bottom: 0;
+      padding: 20px;
+    }
+
+    .dices {
+      width: 100px;
+      height: 100px;
+      border: solid 1px;
+      border-radius: 15px;
+      margin: 10px;
+      float: left;
+    }
+
+    .button-cell {
+      height: 300px;
+      border: 0;
+      vertical-align: top;
+    }
+
+    .selbuttonenable {
+      width: 300px;
+      height: 80px;
+      margin-left: 170px;
+      line-height: 80px;
+      margin-top: 5px;
+    }
+
+    .selbuttondisable {
+      width: 300px;
+      height: 80px;
+      margin-left: 170px;
+      line-height: 80px;
+      margin-top: 5px;
+    }
+
+    .selbuttonenable::after {
+      clear: both;
+    }
+
+    .selbuttondisable::after {
+      clear: both;
+    }
+
+    .selbuttonenable a {
+      display: block;
+      height: 70px;
+      text-align: center;
+      background: #ffffff;
+      border-radius: 15px;
+      color: #000000;
+      font-size: 24px;
+      padding: 0 5px 5px 5px;
+      border: solid #000000 1px;
+      text-decoration: none;
+    }
+
+    .selbuttondisable a {
+      display: block;
+      height: 70px;
+      text-align: center;
+      background: #cccccc;
+      color: #555555;
+      border-radius: 15px;
+      font-size: 24px;
+      padding: 0 5px 5px 5px;
+      border: solid #000000 1px;
+      text-decoration: none;
+      cursor: default;
+    }
+
+    .selbuttonenable a:hover {
+      background: #63a6cf;
+      text-decoration: none;
+    }
+  </style>
+  <script type="module">
+    import { GameBase, GameObject } from './gamebase.js';
+    import { Dice, DiceHtml } from './dice.js';
+
+    let dummy = document.createElement('canvas');
+    let game = new GameBase(dummy, (base) => {
+      const dices = [];
+      const delements = [];
+      const targets = [];
+      const button = document.getElementById('button');
+      const buttondiv = document.getElementById('buttondiv');
+      let retry = [false, false, false, false, false];
+      let selected = [false, false, false, false, false, false, false, false, false, false, false, false];
+      let points = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      let overtarget = -1;
+      let clicktarget = -1;
+      let oldframe = 0;
+      let times = 0;
+
+      button.addEventListener('mousedown', () => {
+        base.pkey['buttonclick'] = true;
+      });
+
+      button.addEventListener('mouseup', () => {
+        base.pkey['buttonclick'] = false;
+      });
+
+      for (let i = 0; i < 5; i++) {
+        let element = document.getElementById('2' + i);
+        delements.push(element);
+        element.addEventListener('mouseenter', (e) => {
+          overtarget = Number.parseInt(e.currentTarget.id);
+        });
+        element.addEventListener('mouseleave', (e) => {
+          overtarget = -1;
+        });
+        element.addEventListener('mousedown', (e) => {
+          clicktarget = Number.parseInt(e.currentTarget.id);
+        });
+        element.addEventListener('mouseup', (e) => {
+          clicktarget = -1;
+        });
+        dices.push(new DiceHtml(element));
+      }
+
+      for (let i = 0; i < 13; i++) {
+        let element = document.getElementById(i.toString());
+        element.addEventListener('mouseenter', (e) => {
+          overtarget = Number.parseInt(e.currentTarget.id);
+        });
+        element.addEventListener('mouseleave', (e) => {
+          overtarget = -1;
+        });
+        element.addEventListener('mousedown', (e) => {
+          clicktarget = Number.parseInt(e.currentTarget.id);
+        });
+        element.addEventListener('mouseup', (e) => {
+          clicktarget = -1;
+        });
+        targets.push(element);
+      }
+
+      base.addObject((obj, base, args) => {
+        base.setState(0);
+        let next;
+        button.innerText = "開始";
+
+        const countNum = (num) => {
+          let count = 0;
+          for (let i = 0; i < 5; i++) {
+            if (dices[i].getnum() === num) count++;
+          }
+          return count;
+        }
+
+        const getNumArray = () => {
+          let nums = [];
+          for (let i = 0; i < 5; i++) {
+            nums.push(dices[i].getnum());
+          }
+          return nums;
+        }
+
+        const getNumsSum = () => {
+          let point = 0;
+          for (let i = 0; i < 5; i++) {
+            point += dices[i].getnum();
+          }
+          return point;
+        }
+
+        const checkScore = (type) => {
+          let point = 0;
+          let nums = [];
+          switch (type) {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+              point = countNum(type + 1) * (type + 1);
+              break;
+            case 6:
+              point = getNumsSum();
+              break;
+            case 7:
+              nums = getNumArray();
+              if ((nums[0] === nums[1] && nums[1] === nums[2]) ||
+                (nums[1] === nums[2] && nums[2] === nums[3]) ||
+                (nums[2] === nums[3] && nums[3] === nums[4])
+              ) {
+                point = getNumsSum();
+              }
+              break;
+            case 8:
+              nums = getNumArray();
+              if ((nums[0] === nums[1] && nums[1] === nums[2] && nums[2] === nums[3]) ||
+                (nums[1] === nums[2] && nums[2] === nums[3] && nums[3] === nums[4])
+              ) {
+                point = getNumsSum();
+              }
+              break;
+            case 9:
+              nums = getNumArray();
+              if (((nums[0] === nums[1] && nums[1] === nums[2]) && (nums[3] === nums[4])) ||
+                ((nums[0] === nums[1]) && (nums[2] === nums[3] && nums[3] === nums[4]))
+              ) {
+                point = getNumsSum();
+              }
+              break;
+            case 10:
+              nums = getNumArray();
+              if ((nums[0] + 1 === nums[1] && nums[1] + 1 === nums[2] && nums[2] + 1 === nums[3]) ||
+                (nums[0] + 1 === nums[1] && nums[1] + 1 === nums[2] && nums[2] + 1 === nums[4]) ||
+                (nums[0] + 1 === nums[1] && nums[1] + 1 === nums[3] && nums[3] + 1 === nums[4]) ||
+                (nums[0] + 1 === nums[2] && nums[2] + 1 === nums[3] && nums[3] + 1 === nums[4]) ||
+                (nums[1] + 1 === nums[2] && nums[2] + 1 === nums[3] && nums[3] + 1 === nums[4])
+              ) {
+                point = 15;
+              }
+              break;
+            case 11:
+              nums = getNumArray();
+              if (nums[0] + 1 === nums[1] && nums[1] + 1 === nums[2] && nums[2] + 1 === nums[3] && nums[3] + 1 === nums[4]) {
+                point = 30;
+              }
+              break;
+            case 12:
+              nums = getNumArray();
+              if (nums[0] === nums[1] && nums[1] === nums[2] && nums[2] === nums[3] && nums[3] === nums[4]) {
+                point = 50;
+              }
+              break;
+          }
+          return point;
+        }
+
+        obj.draw = (state, canvas, ctx) => {
+          //ゲームループ
+          /*
+          for (let i = 0; i < 5; i++) {
+            dices[i].roll();
+          }
+          */
+
+          switch (state) {
+            case 0:
+              //初期化
+              for (let i = 0; i < 5; i++) {
+                dices[i].setnum(0);
+              }
+              for (let i = 0; i < 12; i++) {
+                targets[i].innerText = '';
+              }
+              retry = [false, false, false, false, false];
+              selected = [false, false, false, false, false, false, false, false, false, false, false, false, false];
+              points = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+              times = 0;
+            case 1:
+              //初期状態
+              if (base.getKey('buttonclick')) {
+                buttondiv.classList.remove('selbuttonenable');
+                buttondiv.classList.add('selbuttondisable');
+                button.innerText = 'サイコロを振っています';
+                retry = [true, true, true, true, true];
+                oldframe = base.getFrame();
+                next = 3;
+                base.setState(2);
+              }
+              break;
+            case 2:
+              //ダイスロール
+              if (base.getFrame() >= oldframe + 50) {
+                let sortary = [];
+                for (let i = 0; i < 5; i++) {
+                  sortary.push(dices[i].getnum());
+                }
+                sortary = sortary.sort();
+                for (let i = 0; i < 5; i++) {
+                  dices[i].setnum(sortary[i]);
+                }
+                if (times < 2) {
+                  //buttondiv.classList.remove('selbuttondisable');
+                  //buttondiv.classList.add('selbuttonenable');
+                  buttondiv.classList.remove('selbuttonenable');
+                  buttondiv.classList.add('selbuttondisable');
+                  button.innerText = '振り直す';
+                } else {
+                  buttondiv.classList.remove('selbuttonenable');
+                  buttondiv.classList.add('selbuttondisable');
+                  button.innerText = '振り直しできません';
+                }
+                retry = [false, false, false, false, false];
+                base.setState(next);
+              } else {
+                for (let i = 0; i < 5; i++) {
+                  delements[i].style.backgroundColor = 'white';
+                  if (retry[i]) dices[i].roll();
+                }
+              }
+              break;
+            case 3:
+              //行動選択
+              for (let i = 0; i < 5; i++) {
+                if (retry[i]) {
+                  delements[i].style.backgroundColor = 'gray';
+                } else {
+                  delements[i].style.backgroundColor = 'white';
+                }
+              }
+
+              if (times < 2) {
+                let rcount = 0;
+                for (let i = 0; i < 5; i++) {
+                  if (retry[i]) rcount++;
+                }
+                if (rcount > 0) {
+                  buttondiv.classList.remove('selbuttondisable');
+                  buttondiv.classList.add('selbuttonenable');
+                } else {
+                  buttondiv.classList.remove('selbuttonenable');
+                  buttondiv.classList.add('selbuttondisable');
+                }
+              }
+
+              for (let i = 0; i < 13; i++) {
+                targets[i].style.backgroundColor = 'white';
+                if (!selected[overtarget]) targets[i].innerText = '';
+              }
+
+              if (clicktarget > -1) {
+                let element = document.getElementById(clicktarget.toString());
+                if (clicktarget < 20) {
+                } else {
+                  retry[clicktarget - 20] = retry[clicktarget - 20] ? false : true;
+                }
+                clicktarget = -1;
+              } else if (overtarget > -1) {
+                let element = document.getElementById(overtarget.toString());
+                if (element) {
+                  if (overtarget < 20) {
+                    if (!selected[overtarget]) {
+                      let score = checkScore(overtarget);
+                      element.innerText = score;
+                      element.style.backgroundColor = 'yellow';
+                    }
+                  } else {
+                    if (times < 2) {
+                      if (retry[overtarget - 20]) {
+                        element.style.backgroundColor = 'orange';
+                      } else {
+                        element.style.backgroundColor = 'yellow';
+                      }
+                    }
+                  }
+                }
+              }
+
+              if (base.getKey('buttonclick')) {
+                //times++;
+                oldframe = base.getFrame();
+                next = 3;
+                base.setState(2);
+              }
+
+              break;
+          }
+        }
+      });
+    });
+  </script>
+</head>
+
+<body>
+
+</body>
+<table>
+  <tr>
+    <td class="sheet" rowspan="3">
+      <table style="margin-bottom: 0px;">
+        <tr>
+          <td class="hand">役名</td>
+          <td class="point">得点</td>
+        </tr>
+        <tr>
+          <td class="hand">エース</td>
+          <td class="point" id="0"></td>
+        </tr>
+        <tr>
+          <td class="hand">デュース</td>
+          <td class="point" id="1"></td>
+        </tr>
+        <tr>
+          <td class="hand">トレイ</td>
+          <td class="point" id="2"></td>
+        </tr>
+        <tr>
+          <td class="hand">フォー</td>
+          <td class="point" id="3"></td>
+        </tr>
+        <tr>
+          <td class="hand">ファイブ</td>
+          <td class="point" id="4"></td>
+        </tr>
+        <tr>
+          <td class="hand">シックス</td>
+          <td class="point" id="5"></td>
+        </tr>
+        <tr style="border-top: solid 3px;">
+          <td class="hand">小計</td>
+          <td class="point">0</td>
+        </tr>
+        <tr>
+          <td class="hand">ボーナス</td>
+          <td class="point">0</td>
+        </tr>
+      </table>
+      <div class="instruction">小計が63点以上でボーナス</div>
+      <table>
+        <tr>
+          <td class="hand">チョイス</td>
+          <td class="point" id="6"></td>
+        </tr>
+      </table>
+      <table>
+        <tr>
+          <td class="hand">スリーダイス</td>
+          <td class="point" id="7"></td>
+        </tr>
+        <tr>
+          <td class="hand">フォーダイス</td>
+          <td class="point" id="8"></td>
+        </tr>
+        <tr>
+          <td class="hand">フルハウス</td>
+          <td class="point" id="9"></td>
+        </tr>
+        <tr>
+          <td class="hand">S.ストレート</td>
+          <td class="point" id="10"></td>
+        </tr>
+        <tr>
+          <td class="hand">B.ストレート</td>
+          <td class="point" id="11"></td>
+        </tr>
+        <tr>
+          <td class="hand">ヨット</td>
+          <td class="point" id="12"></td>
+        </tr>
+      </table>
+      <table>
+        <tr>
+          <td class="hand">合計</td>
+          <td class="point">0</td>
+        </tr>
+      </table>
+    </td>
+    <td class="board">
+      <div class="dices" id="20"></div>
+      <div class="dices" id="21"></div>
+      <div class="dices" id="22"></div>
+      <div class="dices" id="23"></div>
+      <div class="dices" id="24"></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="button-cell">
+      <div class="selbuttonenable" id="buttondiv"><a id="button" href="#">ああああ</a></div>
+    </td>
+  </tr>
+</table>
+
+
+</html>

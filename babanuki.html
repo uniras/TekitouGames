@@ -2,482 +2,321 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ババ抜き</title>
-    <style>
-        td {
-            border: solid 1px;
-            width: 50px;
-            height: 100px;
-            vertical-align: center;
-            text-align: center;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ババ抜き</title>
+  <style>
+    td {
+      border: solid 1px;
+      width: 50px;
+      height: 100px;
+      vertical-align: center;
+      text-align: center;
+    }
+
+    .name {
+      border: none;
+    }
+
+    #instruction {
+      margin-top: 10px;
+    }
+  </style>
+  <script type="module">
+    import Trump from './trump.js';
+
+    async function game() {
+      //トランプの初期化とシャッフル
+      const trump = new Trump(4);
+      let clicktile = '';
+      let selnum = -1;
+      let rank = 4;
+
+      //デバッグモード(trueだとCOMのカードも見える)
+      //const debugmode = true;
+      const debugmode = false;
+
+      //クリックイベントの設定
+      const tdelem = document.querySelectorAll('td');
+      tdelem.forEach(elem => elem.addEventListener('click', function (event) {
+        clicktile = event.target.id;
+      }));
+
+      //選択できるカードにカーソルを持って行ったときにハイライトできるようにする
+      tdelem.forEach(elem => elem.addEventListener('mouseover', function (event) {
+        if (selnum > 0) {
+          if (event.target.id.indexOf('p' + selnum + '_') === 0) {
+            event.target.style.background = 'aqua';
+          }
         }
+      }));
 
-        .name {
-            border: none;
+      //カーソルが離れた時に背景色を元の色に戻す
+      tdelem.forEach(elem => elem.addEventListener('mouseleave', function (event) {
+        if (event.target.id === '') return;
+        if (debugmode || event.target.id.indexOf('p0_') === 0 || rank !== 4) {
+          event.target.style.background = 'white';
+        } else {
+          event.target.style.background = 'black';
         }
+      }));
 
-        #instruction {
-            margin-top: 10px;
+      //現在のカード状況を描画
+      const draw = function () {
+        for (let i = 0; i < 4; i++) {
+          let cnt = trump.getCardCount(i);
+          let arr = trump.getCardArray(i);
+          for (let j = 0; j < 15; j++) {
+            let elem = document.getElementById('p' + i + '_' + j);
+            if (j < cnt) {
+              elem.style.display = 'table-cell';
+              if (debugmode || i == 0 || rank !== 4) {
+                elem.innerHTML = trump.getCardHtml(arr[j]);
+                elem.style.background = 'white';
+              } else {
+                elem.style.background = 'black';
+              }
+            } else {
+              elem.style.display = 'none';
+            }
+          }
         }
-    </style>
-    <script>
-        //トランプ管理クラス
-        class Trump {
-            deck = [];
-            player = [];
-            joker = 'JKR';
-            number = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', this.joker];
-            suithtml = ['<span style="color:black;">♠</span>', '<span style="color:red;">♥</span>', '<span style="color:red;">♦</span>', '<span style="color:black;">♣</span>', ''];
-            suit = ['♠', '♥', '♦', '♣', ''];
+      }
 
-            //コンストラクタ
-            constructor(players = 0, jokers = 1, shuffle = true) {
-                this.init(players, jokers, shuffle);
+      //同じ数字のペアを探して山に戻す
+      const checkpair = function (idx) {
+        if (idx < 0) return;
+        if (trump.getCardCount(idx) < 2) return;
+        while (true) {
+          let arr = trump.getCardArray(idx);
+          let ispair = false;
+          for (let j = 0; j < trump.getCardCount(idx); j++) {
+            for (let k = j + 1; k < trump.getCardCount(idx); k++) {
+              if (trump.getRawNumber(arr[j]) === trump.getRawNumber(arr[k])) {
+                ispair = true;
+                trump.sendCardIndex(idx, j, -1);
+                trump.sendCardIndex(idx, k - 1, -1);
+              }
+              if (ispair) break;
             }
-
-            //現在のカード状態を全て破棄して初期化(players:プレイヤー数、jokers:ジョーカーの枚数2枚まで、shuffle:シャッフルするか)
-            init(players = 0, jokers = 1, shuffle = true) {
-                this.deck = [];
-                this.player = [];
-
-                if (jokers < 0) jokers = 0;
-                if (jokers > 2) jokers = 2;
-
-                for (let i = 0; i < 52 + jokers; i++) {
-                    this.deck.push(i);
-                }
-
-                if (players > 0) {
-                    for (let i = 0; i < players; i++) {
-                        this.player.push([]);
-                    }
-                }
-
-                if (shuffle) {
-                    this.shuffle();
-                }
-            }
-
-            //デッキまたはプレイヤーのカードをシャッフル(0未満:デッキ, 0以上:プレーヤー)
-            shuffle(play = -1, times = 10000) {
-                if (play >= this.player.length) return -1;
-                let playary = play < 0 ? this.deck : this.player[play];
-
-                if (playary.length <= 0) return;
-
-                for (let i = 0; i < times; i++) {
-                    let rnd = Math.floor(Math.random() * playary.length);
-                    let buf = playary[0];
-                    playary[0] = playary[rnd];
-                    playary[rnd] = buf;
-                }
-            }
-
-            //デッキまたはプレイヤーのカードをカード番号順にソートする
-            sortCard(play) {
-                if (play >= this.player.length) return;
-                let playary = play < 0 ? this.deck : this.player[play];
-                playary.sort(function (a, b) {
-                    if (a < b) return -1;
-                    if (a > b) return 1;
-                    return 0;
-                });
-            }
-
-            //デッキまたはプレイヤーのカードを数値→スートの順にソートする
-            sortCardNumber(play) {
-                if (play >= this.player.length) return;
-                let playary = play < 0 ? this.deck : this.player[play];
-                playary.sort(function (a, b) {
-                    let anum = a > 51 ? 13 : a % 13;
-                    let bnum = b > 51 ? 13 : b % 13;
-                    let asu = Math.floor(a / 13);
-                    let bsu = Math.floor(b / 13);
-                    if (anum < bnum) return -1;
-                    if (anum > bnum) return 1;
-                    if (asu < bsu) return -1;
-                    if (asu > bsu) return 1;
-                    return 0;
-                });
-            }
-
-            //デッキまたはプレイヤーのカードを独自の関数を設定してソートする
-            sortFunction(play, func) {
-                if (play >= this.player.length) return;
-                let playary = play < 0 ? this.deck : this.player[play];
-                playary.sort(func);
-            }
-
-            //デッキまたはプレイヤーのカードの最初(一番上)をデッキまたは別のプレーヤーに渡す
-            sendCard(from, to) {
-                if (from >= this.player.length) return false;
-                if (to >= this.player.length) return false;
-                let fromary = from < 0 ? this.deck : this.player[from];
-                let toary = to < 0 ? this.deck : this.player[to];
-                if (fromary.length === 0) return false;
-                toary.unshift(fromary.shift());
-                return true;
-            }
-
-            //デッキまたはプレイヤーのカードの指定枚目をデッキまたは別のプレイヤーの(指定枚目)に渡す
-            sendCardIndex(from, findex, to, tindex = 0) {
-                if (from >= this.player.length) return false;
-                if (to >= this.player.length) return false;
-                let fromary = from < 0 ? this.deck : this.player[from];
-                let toary = to < 0 ? this.deck : this.player[to];
-                if (findex < 0 || findex >= fromary.length) return false;
-                if (tindex < 0) return false;
-                if (fromary.length === 0) return false;
-                toary.splice(tindex, 0, fromary.splice(findex, 1)[0]);
-                return true;
-            }
-
-            //デッキまたは現在のプレイヤーのカード所持枚数をチェック
-            getCardCount(play) {
-                if (play >= this.player.length) return -1;
-                let playary = play < 0 ? this.deck : this.player[play];
-                return playary.length;
-            }
-
-            //デッキまたはプレイヤーのカードの状態を表す配列(コピー)を取得
-            getCardArray(play) {
-                if (play >= this.player.length) return null;
-                let playary = play < 0 ? this.deck : this.player[play];
-                let result = [];
-                for (let i = 0; i < playary.length; i++) {
-                    result.push(playary[i]);
-                }
-                return result;
-            }
-
-            //カード番号からスートを表す番号を取得
-            getSuit(card) {
-                if (card < 0 || card > 53) return -1;
-                if (card === 52 || card === 53) return 4;
-                return Math.floor(card / 13);
-            }
-
-            //カード番号からカードの数値を取得(0オリジン)
-            getRawNumber(card) {
-                if (card < 0 || card > 53) return -1;
-                if (card === 52 || card === 53) return 13;
-                return card % 13;
-            }
-
-            //カード番号からカードの数値を取得(1オリジン)
-            getNumber(card) {
-                return this.getRawNumber(card) + 1;
-            }
-
-            //カード番号からカードを示す文字列を取得
-            getCardString(card) {
-                if (card < 0 || card > 53) return '';
-                if (card === 52 || card === 53) return this.joker;
-                return this.suit[Math.floor(card / 13)] + this.number[card % 13];
-            }
-
-            //カード番号からカードを示すHTML文字列を取得
-            getCardHtml(card) {
-                if (card < 0 || card > 53) return '';
-                if (card === 52 || card === 53) return this.joker;
-                return this.suithtml[Math.floor(card / 13)] + '<br>' + this.number[card % 13];
-            }
+            if (ispair) break;
+          }
+          if (!ispair) break;
         }
+      }
 
-        async function game() {
-            //トランプの初期化とシャッフル
-            const trump = new Trump(4);
-            let clicktile = '';
-            let selnum = -1;
-            let rank = 4;
+      //プレイ可能人数(まだあがってない人)の取得
+      const checkPlaying = function () {
+        let result = 0;
+        for (let i = 0; i < 4; i++) {
+          if (trump.getCardCount(i) > 0) result++;
+        }
+        return result;
+      }
 
-            //デバッグモード(trueだとCOMのカードも見える)
-            //const debugmode = true;
-            const debugmode = false;
+      //次のプレイヤーの取得
+      const checkNextPlayer = function (play) {
+        if (checkPlaying() <= 1) return -1;
+        let result = (play + 1) % 4;
+        while (true) {
+          if (trump.getCardCount(result) > 0) return result;
+          result = (result + 1) % 4;
+        }
+      }
 
-            //クリックイベントの設定
-            const tdelem = document.querySelectorAll('td');
-            tdelem.forEach(elem => elem.addEventListener('click', function (event) {
-                clicktile = event.target.id;
-            }));
+      //カードを配る
+      while (true) {
+        if (trump.getCardCount(-1) === 0) break;
+        for (let i = 0; i < 4; i++) {
+          if (trump.getCardCount(-1) === 0) break;
+          trump.sendCard(-1, i);
+        }
+      }
 
-            //選択できるカードにカーソルを持って行ったときにハイライトできるようにする
-            tdelem.forEach(elem => elem.addEventListener('mouseover', function (event) {
-                if (selnum > 0) {
-                    if (event.target.id.indexOf('p' + selnum + '_') === 0) {
-                        event.target.style.background = 'aqua';
-                    }
-                }
-            }));
+      draw();
 
-            //カーソルが離れた時に背景色を元の色に戻す
-            tdelem.forEach(elem => elem.addEventListener('mouseleave', function (event) {
-                if (event.target.id === '') return;
-                if (debugmode || event.target.id.indexOf('p0_') === 0 || rank !== 4) {
-                    event.target.style.background = 'white';
-                } else {
-                    event.target.style.background = 'black';
-                }
-            }));
+      document.getElementById('output').innerText = "同じ番号のカードを山に出します";
 
-            //現在のカード状況を描画
-            const draw = function () {
-                for (let i = 0; i < 4; i++) {
-                    let cnt = trump.getCardCount(i);
-                    let arr = trump.getCardArray(i);
-                    for (let j = 0; j < 15; j++) {
-                        let elem = document.getElementById('p' + i + '_' + j);
-                        if (j < cnt) {
-                            elem.style.display = 'table-cell';
-                            if (debugmode || i == 0 || rank !== 4) {
-                                elem.innerHTML = trump.getCardHtml(arr[j]);
-                                elem.style.background = 'white';
-                            } else {
-                                elem.style.background = 'black';
-                            }
-                        } else {
-                            elem.style.display = 'none';
-                        }
-                    }
-                }
-            }
+      await new Promise(s => setTimeout(s, 2000));
 
-            //同じ数字のペアを探して山に戻す
-            const checkpair = function (idx) {
-                if (idx < 0) return;
-                if (trump.getCardCount(idx) < 2) return;
-                while (true) {
-                    let arr = trump.getCardArray(idx);
-                    let ispair = false;
-                    for (let j = 0; j < trump.getCardCount(idx); j++) {
-                        for (let k = j + 1; k < trump.getCardCount(idx); k++) {
-                            if (trump.getRawNumber(arr[j]) === trump.getRawNumber(arr[k])) {
-                                ispair = true;
-                                trump.sendCardIndex(idx, j, -1);
-                                trump.sendCardIndex(idx, k - 1, -1);
-                            }
-                            if (ispair) break;
-                        }
-                        if (ispair) break;
-                    }
-                    if (!ispair) break;
-                }
-            }
+      for (let i = 0; i < 4; i++) {
+        checkpair(i);
+      }
 
-            //プレイ可能人数(まだあがってない人)の取得
-            const checkPlaying = function () {
-                let result = 0;
-                for (let i = 0; i < 4; i++) {
-                    if (trump.getCardCount(i) > 0) result++;
-                }
-                return result;
-            }
+      draw();
 
-            //次のプレイヤーの取得
-            const checkNextPlayer = function (play) {
-                if (checkPlaying() <= 1) return -1;
-                let result = (play + 1) % 4;
-                while (true) {
-                    if (trump.getCardCount(result) > 0) return result;
-                    result = (result + 1) % 4;
-                }
-            }
+      //console.log(trump.getCardArray(-1).map(x => trump.number[trump.getRawNumber(x)]));
 
-            //カードを配る
-            while (true) {
-                if (trump.getCardCount(-1) === 0) break;
-                for (let i = 0; i < 4; i++) {
-                    if (trump.getCardCount(-1) === 0) break;
-                    trump.sendCard(-1, i);
-                }
-            }
+      let turn = -1;
+      let next = 0;
 
+      while (true) {
+        //あがってない人が一人以下になったら終了
+        if (checkPlaying() <= 1) break;
+
+        turn = (turn + 1) % 4;
+
+        if (trump.getCardCount(turn) === 0) continue;
+
+        //ターンが回ってきたプレイヤーの文字色を赤にする
+        document.getElementById('t' + turn).style.color = 'red';
+
+        switch (turn) {
+          case 0:
+            //Playerのターン
+            next = checkNextPlayer(0);
+            selnum = next;
+            if (next === -1) break;
+
+            //Playerが取るCOMのカードをシャッフル
+            trump.shuffle(next);
             draw();
 
-            document.getElementById('output').innerText = "同じ番号のカードを山に出します";
+            document.getElementById('output').innerText = 'COM' + next + 'のカードから引くカードを選んでください';
+            clicktile = '';
 
-            await new Promise(s => setTimeout(s, 2000));
-
-            for (let i = 0; i < 4; i++) {
-                checkpair(i);
-            }
-
-            draw();
-
-            //console.log(trump.getCardArray(-1).map(x => trump.number[trump.getRawNumber(x)]));
-
-            let turn = -1;
-            let next = 0;
-
+            //プレイヤーがカードを選ぶのを待つ
             while (true) {
-                //あがってない人が一人以下になったら終了
-                if (checkPlaying() <= 1) break;
-
-                turn = (turn + 1) % 4;
-
-                if (trump.getCardCount(turn) === 0) continue;
-
-                //ターンが回ってきたプレイヤーの文字色を赤にする
-                document.getElementById('t' + turn).style.color = 'red';
-
-                switch (turn) {
-                    case 0:
-                        //Playerのターン
-                        next = checkNextPlayer(0);
-                        selnum = next;
-                        if (next === -1) break;
-
-                        //Playerが取るCOMのカードをシャッフル
-                        trump.shuffle(next);
-                        draw();
-
-                        document.getElementById('output').innerText = 'COM' + next + 'のカードから引くカードを選んでください';
-                        clicktile = '';
-
-                        //プレイヤーがカードを選ぶのを待つ
-                        while (true) {
-                            if (clicktile.indexOf('p' + next + '_') === 0) {
-                                let clicknum = parseInt(clicktile.substring(3));
-                                if (clicknum <= trump.getCardCount(next)) {
-                                    //カードが選ばれたらカードを移動してループを抜ける
-                                    trump.sendCardIndex(next, clicknum, 0, trump.getCardCount(0));
-                                    break;
-                                }
-                            }
-                            await new Promise(s => setTimeout(s, 500));
-                        }
-                        selnum = -1;
-                        break;
-                    case 1:
-                    case 2:
-                    case 3:
-                        //COMのターン
-                        next = checkNextPlayer(turn);
-                        if (next === -1) break;
-                        document.getElementById('output').innerText = 'COM' + turn + 'の番です';
-                        await new Promise(s => setTimeout(s, 1000));
-                        //ランダムに選んでカードを移動
-                        let rnd = Math.floor(Math.random() * trump.getCardCount(next));
-                        trump.sendCardIndex(next, rnd, turn, trump.getCardCount(turn));
-                        break;
+              if (clicktile.indexOf('p' + next + '_') === 0) {
+                let clicknum = parseInt(clicktile.substring(3));
+                if (clicknum <= trump.getCardCount(next)) {
+                  //カードが選ばれたらカードを移動してループを抜ける
+                  trump.sendCardIndex(next, clicknum, 0, trump.getCardCount(0));
+                  break;
                 }
-
-                draw();
-
-                await new Promise(s => setTimeout(s, 1000));
-
-                //同じ数字のペアがないか確認
-                checkpair(turn);
-
-                //プレイヤーが上がっていたときは順位を確認(COMが引いたことで0枚になる可能性があるので全ターンでチェック)
-                if (rank === 4 && trump.getCardCount(0) === 0) {
-                    rank = 4 - checkPlaying();
-                }
-
-                draw();
-
-                //ターンが終わったので文字色を元に戻す
-                document.getElementById('t' + turn).style.color = 'black';
+              }
+              await new Promise(s => setTimeout(s, 500));
             }
-
-            //順位を表示して終了
-            document.getElementById('output').innerText = 'ゲームが終了しました。あなたは' + rank + '位です。'
+            selnum = -1;
+            break;
+          case 1:
+          case 2:
+          case 3:
+            //COMのターン
+            next = checkNextPlayer(turn);
+            if (next === -1) break;
+            document.getElementById('output').innerText = 'COM' + turn + 'の番です';
+            await new Promise(s => setTimeout(s, 1000));
+            //ランダムに選んでカードを移動
+            let rnd = Math.floor(Math.random() * trump.getCardCount(next));
+            trump.sendCardIndex(next, rnd, turn, trump.getCardCount(turn));
+            break;
         }
 
-        window.addEventListener('DOMContentLoaded', async (event) => {
-            game();
-        });
-    </script>
+        draw();
+
+        await new Promise(s => setTimeout(s, 1000));
+
+        //同じ数字のペアがないか確認
+        checkpair(turn);
+
+        //プレイヤーが上がっていたときは順位を確認(COMが引いたことで0枚になる可能性があるので全ターンでチェック)
+        if (rank === 4 && trump.getCardCount(0) === 0) {
+          rank = 4 - checkPlaying();
+        }
+
+        draw();
+
+        //ターンが終わったので文字色を元に戻す
+        document.getElementById('t' + turn).style.color = 'black';
+      }
+
+      //順位を表示して終了
+      document.getElementById('output').innerText = 'ゲームが終了しました。あなたは' + rank + '位です。'
+    }
+
+    window.addEventListener('DOMContentLoaded', async (event) => {
+      game();
+    });
+  </script>
 </head>
 
 <body>
-    <div id="output"></div>
-    <table>
-        <tbody>
-            <tr>
-                <td class="name"><span id="t0">Player</span></td>
-                <td id="p0_0"></td>
-                <td id="p0_1"></td>
-                <td id="p0_2"></td>
-                <td id="p0_3"></td>
-                <td id="p0_4"></td>
-                <td id="p0_5"></td>
-                <td id="p0_6"></td>
-                <td id="p0_7"></td>
-                <td id="p0_8"></td>
-                <td id="p0_9"></td>
-                <td id="p0_10"></td>
-                <td id="p0_11"></td>
-                <td id="p0_12"></td>
-                <td id="p0_13"></td>
-                <td id="p0_14"></td>
-            </tr>
-            <tr>
-                <td class="name"><span id="t1">COM1</span></td>
-                <td id="p1_0"></td>
-                <td id="p1_1"></td>
-                <td id="p1_2"></td>
-                <td id="p1_3"></td>
-                <td id="p1_4"></td>
-                <td id="p1_5"></td>
-                <td id="p1_6"></td>
-                <td id="p1_7"></td>
-                <td id="p1_8"></td>
-                <td id="p1_9"></td>
-                <td id="p1_10"></td>
-                <td id="p1_11"></td>
-                <td id="p1_12"></td>
-                <td id="p1_13"></td>
-                <td id="p1_14"></td>
-            </tr>
-            <tr>
-                <td class="name"><span id="t2">COM2</span></td>
-                <td id="p2_0"></td>
-                <td id="p2_1"></td>
-                <td id="p2_2"></td>
-                <td id="p2_3"></td>
-                <td id="p2_4"></td>
-                <td id="p2_5"></td>
-                <td id="p2_6"></td>
-                <td id="p2_7"></td>
-                <td id="p2_8"></td>
-                <td id="p2_9"></td>
-                <td id="p2_10"></td>
-                <td id="p2_11"></td>
-                <td id="p2_12"></td>
-                <td id="p2_13"></td>
-                <td id="p2_14"></td>
-            </tr>
-            <tr>
-                <td class="name"><span id="t3">COM3</span></td>
-                <td id="p3_0"></td>
-                <td id="p3_1"></td>
-                <td id="p3_2"></td>
-                <td id="p3_3"></td>
-                <td id="p3_4"></td>
-                <td id="p3_5"></td>
-                <td id="p3_6"></td>
-                <td id="p3_7"></td>
-                <td id="p3_8"></td>
-                <td id="p3_9"></td>
-                <td id="p3_10"></td>
-                <td id="p3_11"></td>
-                <td id="p3_12"></td>
-                <td id="p3_13"></td>
-                <td id="p3_14"></td>
-            </tr>
-        </tbody>
-    </table>
-    <div id="instruction">
-        <p>遊び方</p>
-        <p>
-            あなたに順番が回ってくると一番上のPlayerの文字が赤くなるので、<br>
-            次のプレイヤー(COM1、COM1があがっていればCOM2…)からカードをクリックして取ってください。<br>
-            取れるカードにカーソルを合わせると色が変わります。
-        </p>
-    </div>
+  <div id="output"></div>
+  <table>
+    <tbody>
+      <tr>
+        <td class="name"><span id="t0">Player</span></td>
+        <td id="p0_0"></td>
+        <td id="p0_1"></td>
+        <td id="p0_2"></td>
+        <td id="p0_3"></td>
+        <td id="p0_4"></td>
+        <td id="p0_5"></td>
+        <td id="p0_6"></td>
+        <td id="p0_7"></td>
+        <td id="p0_8"></td>
+        <td id="p0_9"></td>
+        <td id="p0_10"></td>
+        <td id="p0_11"></td>
+        <td id="p0_12"></td>
+        <td id="p0_13"></td>
+        <td id="p0_14"></td>
+      </tr>
+      <tr>
+        <td class="name"><span id="t1">COM1</span></td>
+        <td id="p1_0"></td>
+        <td id="p1_1"></td>
+        <td id="p1_2"></td>
+        <td id="p1_3"></td>
+        <td id="p1_4"></td>
+        <td id="p1_5"></td>
+        <td id="p1_6"></td>
+        <td id="p1_7"></td>
+        <td id="p1_8"></td>
+        <td id="p1_9"></td>
+        <td id="p1_10"></td>
+        <td id="p1_11"></td>
+        <td id="p1_12"></td>
+        <td id="p1_13"></td>
+        <td id="p1_14"></td>
+      </tr>
+      <tr>
+        <td class="name"><span id="t2">COM2</span></td>
+        <td id="p2_0"></td>
+        <td id="p2_1"></td>
+        <td id="p2_2"></td>
+        <td id="p2_3"></td>
+        <td id="p2_4"></td>
+        <td id="p2_5"></td>
+        <td id="p2_6"></td>
+        <td id="p2_7"></td>
+        <td id="p2_8"></td>
+        <td id="p2_9"></td>
+        <td id="p2_10"></td>
+        <td id="p2_11"></td>
+        <td id="p2_12"></td>
+        <td id="p2_13"></td>
+        <td id="p2_14"></td>
+      </tr>
+      <tr>
+        <td class="name"><span id="t3">COM3</span></td>
+        <td id="p3_0"></td>
+        <td id="p3_1"></td>
+        <td id="p3_2"></td>
+        <td id="p3_3"></td>
+        <td id="p3_4"></td>
+        <td id="p3_5"></td>
+        <td id="p3_6"></td>
+        <td id="p3_7"></td>
+        <td id="p3_8"></td>
+        <td id="p3_9"></td>
+        <td id="p3_10"></td>
+        <td id="p3_11"></td>
+        <td id="p3_12"></td>
+        <td id="p3_13"></td>
+        <td id="p3_14"></td>
+      </tr>
+    </tbody>
+  </table>
+  <div id="instruction">
+    <p>遊び方</p>
+    <p>
+      あなたに順番が回ってくると一番上のPlayerの文字が赤くなるので、<br>
+      次のプレイヤー(COM1、COM1があがっていればCOM2…)からカードをクリックして取ってください。<br>
+      取れるカードにカーソルを合わせると色が変わります。
+    </p>
+  </div>
 </body>
 
 </html>

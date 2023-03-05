@@ -2,603 +2,332 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        #invader {
-            border: solid 1px;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>インベーダーもどき</title>
+  <style>
+    #invader {
+      border: solid 1px;
+    }
+
+    #canvas {
+      position: relative;
+      left: 0px;
+      height: 0px;
+      width: 480px;
+      height: 480px;
+    }
+
+    #output {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      width: 480px;
+      height: 40px;
+      text-align: center;
+      color: black;
+      font-size: 40px;
+      z-index: 2;
+    }
+  </style>
+  <script type="module">
+    import { GameBase, GameObject } from './gamebase.js';
+
+    class CollisionBase {
+      bullet = [];
+
+      isCollision(obj) {
+        let result = false;
+
+        this.bullet.forEach(bul => {
+          if (GameObject.isCollision(obj, bul)) {
+            result = true;
+            bul.base.removeObject(bul);
+          }
+        });
+
+        return result;
+      }
+
+      addBullet(_bullet) {
+        this.bullet.push(_bullet);
+      }
+
+      removeBullet(_bullet) {
+        if (this.bullet.indexOf(_bullet) > -1) {
+          this.bullet.splice(this.bullet.indexOf(_bullet), 1);
+        }
+      }
+    }
+
+    class Bullet extends GameObject {
+      speed = 1;
+      move = 10;
+      col;
+
+      constructor(_p, _x, _y, _w, _h, _s, _col) {
+        super(_p);
+        this.setRect(_x, _y, _w, _h);
+        this.state = _s;
+        this.col = _col;
+        this.col.addBullet(this);
+        this.base.addObject(this);
+      }
+
+      draw(state, canvas, ctx) {
+        this.drawEllipse('black', false);
+      }
+
+      remove() {
+        this.col.removeBullet(this);
+        //this.base.removeObject(this);
+      }
+
+      isMove() {
+        return this.base.getFrame() % this.speed === 0;
+      }
+    }
+
+    class EnemyBullet extends Bullet {
+      draw(state, canvas, ctx) {
+        super.draw(state, canvas, ctx);
+        if (this.isMove()) {
+          this.y = this.y + this.move;
+        }
+        if (this.y > canvas.height) {
+          //this.remove();
+          this.base.removeObject(this);
+        }
+      }
+    }
+
+    class PlayerBullet extends Bullet {
+      draw(state, canvas, ctx) {
+        super.draw(state, canvas, ctx);
+        if (this.isMove()) {
+          this.y = this.y - this.move;
+        }
+        if (this.y < 0) {
+          //this.remove();
+          this.base.removeObject(this);
+        }
+      }
+    }
+
+    class Invader extends GameObject {
+      static count = 0;
+      static movemode = 0;  //0:右へ 1:右端で下がる 2:左へ 3:左端で下がる の繰り返し
+      static changeframe = 0;
+      static movechange = false;
+      static move = 10;
+      static levelupframe = 0;
+      static levelbullet = [1000, 800, 400, 200, 100, 50];
+      static levelspeed = [100, 50, 30, 20, 10, 5];
+      static levelup = [40, 30, 20, 10, 5, -1];
+      static islevelup = false;
+      static level = 0;
+
+      static InvaderInit(base) {
+        Invader.count = 0;
+        Invader.movemode = 0;
+        Invader.movechange = false;
+        Invader.level = 0;
+        Invader.islevelup = false;
+        Invader.changeframe = 0;
+        Invader.levelupframe = 0;
+        for (let i = 0; i < 5; i++) {
+          for (let j = 0; j < 10; j++) {
+            let invader = new Invader(base);
+            invader.setRect((j * 40) + 30, (i * 40) + 80, 30, 30);
+            invader.setState(0);
+            invader.pcol = base.pcol;
+            invader.ecol = base.ecol;
+            base.addObject(invader);
+          }
+        }
+      }
+
+      pcol;
+      ecol;
+
+      constructor(_p, _x, _y, _w, _h, _s, _pcol, _ecol) {
+        super(_p);
+        this.setRect(_x, _y, _w, _h)
+        this.state = _s;
+        this.pcol = _pcol;
+        this.ecol = _ecol;
+        Invader.count++;
+      }
+
+      draw(state, canvas, ctx) {
+        if (state === 1) {
+          if (this.ecol.isCollision(this)) {
+            this.base.removeObject(this);
+            Invader.count--;
+            if (Invader.count <= Invader.levelup[Invader.level]) {
+              Invader.islevelup = true;
+              Invader.levelupframe = this.base.frame;
+            }
+            if (Invader.count <= 0) {
+              document.getElementById('output').innerText = 'クリアです';
+              this.base.setState(3);
+            }
+            return;
+          }
+          if (Invader.islevelup && Invader.levelupframe < this.base.frame) {
+            Invader.level++;
+            Invader.islevelup = false;
+          }
+          if (this.base.frame % Invader.levelspeed[Invader.level] === 0) {
+            if (Invader.movechange && Invader.changeframe < this.base.frame) {
+              Invader.movemode = (Invader.movemode + 1) % 4;
+              Invader.movechange = false;
+            }
+            switch (Invader.movemode) {
+              case 0:   //右に移動
+                this.x += Invader.move;
+                //次移動したら当たりそうなら次は下に下がる
+                if (this.x + this.w + Invader.move > canvas.width) {
+                  Invader.movechange = true;
+                  Invader.changeframe = this.base.frame;
+                }
+                break;
+              case 2:    //左に移動
+                this.x -= Invader.move;
+                if (this.x - Invader.move < 0) {
+                  Invader.movechange = true;
+                  Invader.changeframe = this.base.frame;
+                }
+                break;
+              case 1:    //下に移動
+              case 3:
+                this.y += this.h;
+                Invader.movechange = true;
+                Invader.changeframe = this.base.frame;
+                if (this.y + this.h > 450) {
+                  document.getElementById('output').innerText = 'ゲームオーバー';
+                  this.base.setState(3);
+                }
+            }
+          }
+
+          if (Math.floor(Math.random() * Invader.levelbullet[Invader.level]) === 0) {
+            if (this.pcol.bullet.length < 3) {
+              new EnemyBullet(this.base, this.x + (this.w / 2), this.y + this.h, 5, 5, 0, this.pcol);
+            }
+          }
         }
 
-        #canvas {
-            position: relative;
-            left: 0px;
-            height: 0px;
-            width: 480px;
-            height: 480px;
+        this.drawEllipse('black', true);
+        /*
+        if (this.ecol.isCollision(this)) {
+          this.base.removeObject(this);
+          Invader.count--;
+          return;
         }
+        if (Math.floor(Math.random() * 1000) == 0) {
+          new EnemyBullet(this.base, this.x + (this.w / 2), this.y + this.h, 5, 5, 0, this.pcol);
+        }
+        this.drawEllipse('black', true);
+        */
+      }
+    }
 
-        #output {
-            position: absolute;
-            top: 20px;
-            left: 0;
-            width: 480px;
-            height: 40px;
-            text-align: center;
-            color: black;
-            font-size: 40px;
-            z-index: 2;
+    class Player extends GameObject {
+      count = 3;
+      speed = 10;
+      pcol;
+      ecol;
+
+      constructor(_p) {
+        super(_p);
+        this.init(_p);
+      }
+
+      init(base) {
+        this.setRect(220, 450, 40, 20);
+        this.setState(0);
+        this.count = 5;
+        this.speed = 10;
+        this.pcol = base.pcol;
+        this.ecol = base.ecol;
+      }
+
+      draw(state, canvas, ctx) {
+        if (state === 1) {
+          if (this.base.getKey('arrowleft', true)) {
+            if (this.x - this.speed < 0) {
+              this.x = 0;
+            } else {
+              this.x -= this.speed;
+            }
+          }
+          if (this.base.getKey('arrowright', true)) {
+            if (this.x + this.w + this.speed > canvas.width) {
+              this.x = canvas.width - this.w;
+            } else {
+              this.x += this.speed;
+            }
+          }
+          if (this.base.getKey('enter') || this.base.getKeyCode('space')) {
+            new PlayerBullet(this.base, this.x + (this.w / 2), this.y, 5, 5, 0, this.ecol);
+          }
+
+          if (this.pcol.isCollision(this)) {
+            this.count--;
+            if (this.count < 0) {
+              document.getElementById('output').innerText = 'ゲームオーバー';
+              this.base.setState(3);
+            }
+            return;
+          }
+        } else if (state === 0 || state === 3) {
+          if (this.base.getKey('mouse')) {
+            document.getElementById('output').innerText = '';
+            if (state === 3) this.base.init();
+            this.base.setState(1);
+          }
         }
-    </style>
-    <title>インベーダーもどき</title>
+        if (this.count < 1) {
+          this.drawRect('red', true);
+        } else if (this.count < 3) {
+          this.drawRect('yellow', true);
+        } else {
+          this.drawRect('black', true);
+        }
+      }
+    }
+
+    class InvaderGame extends GameBase {
+      pcol;
+      ecol;
+
+      constructor(canvas) {
+        super(canvas);
+      }
+
+      init() {
+        this.clearObject();
+        this.setState(0);
+        this.pcol = new CollisionBase();
+        this.ecol = new CollisionBase();
+        Invader.InvaderInit(this);
+        this.addObject(new Player(this));
+      }
+
+      onStart() {
+        this.init();
+      }
+    }
+    new InvaderGame('invader');
+  </script>
 </head>
 
 <body>
-
-    <div id="canvas">
-        <canvas id="invader" width="480" height="480"></canvas>
-    </div>
-    <div id="output">クリックしてスタート</div>
-
-
-    <script type="text/javascript">
-"use strict";
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-class GameBase {
-  constructor(canvas) {
-    _defineProperty(this, "gamestate", 0);
-
-    _defineProperty(this, "gameobj", []);
-
-    _defineProperty(this, "canvas", null);
-
-    _defineProperty(this, "ctx", null);
-
-    _defineProperty(this, "pkey", {});
-
-    _defineProperty(this, "mousex", -1);
-
-    _defineProperty(this, "mousey", -1);
-
-    _defineProperty(this, "clickx", -1);
-
-    _defineProperty(this, "clicky", -1);
-
-    _defineProperty(this, "frame", 0);
-
-    let _self = this;
-
-    if (typeof canvas === 'string') {
-      let canvasstr = canvas;
-      canvas = document.getElementById(canvasstr);
-
-      if (canvas === null) {
-        window.addEventListener('DOMContentLoaded', e => {
-          canvas = document.getElementById(canvasstr);
-          if (canvas !== null) _self.__init(canvas);
-        });
-        return;
-      }
-    }
-
-    if (canvas !== null) _self.__init(canvas);
-  }
-
-  __init(canvas) {
-    const ctx = canvas.getContext('2d');
-    this.canvas = canvas;
-
-    if (ctx != null) {
-      this.ctx = ctx;
-      this.pkey = {};
-      this.mousex = -1;
-      this.mousey = -1;
-      this.clickx = -1;
-      this.clicky = -1;
-
-      let _self = this;
-
-      document.addEventListener('keydown', e => {
-        let key = e.key === ' ' ? 'space' : e.key.toLowerCase();
-        if (!e.repeat) _self.pkey[key] = true;
-      });
-      document.addEventListener('keyup', e => {
-        let key = e.key === ' ' ? 'space' : e.key.toLowerCase();
-        if (!e.repeat) _self.pkey[key] = false;
-      });
-      document.addEventListener('mousemove', e => {
-        _self.mousex = e.clientX - canvas.offsetLeft;
-        _self.mousey = e.clientY - canvas.offsetTop;
-      });
-      document.addEventListener('mousedown', e => {
-        _self.pkey['mouse'] = true;
-        _self.clickx = e.clientX - canvas.offsetLeft;
-        _self.clicky = e.clientY - canvas.offsetTop;
-      });
-      document.addEventListener('mouseup', e => {
-        _self.pkey['mouse'] = false;
-      });
-      this.gamestate = 0;
-      this.gameobj = [];
-      this.onStart();
-
-      this.__draw();
-    }
-  }
-
-  __draw() {
-    var _this$canvas;
-
-    if (this.ctx === null || this.canvas === null) return;
-    this.frame = (this.frame + 1) % 100000000;
-    this.ctx.clearRect(0, 0, this.canvas.width, (_this$canvas = this.canvas) === null || _this$canvas === void 0 ? void 0 : _this$canvas.height);
-    this.onDraw(this.canvas, this.ctx, this.gamestate);
-    requestAnimationFrame(this.__draw.bind(this));
-  }
-
-  addObject(obj) {
-    this.gameobj.push(obj);
-  }
-
-  removeObject(obj) {
-    if (this.gameobj.indexOf(obj) > -1) {
-      this.gameobj.splice(this.gameobj.indexOf(obj), 1);
-    }
-  }
-
-  getFrame() {
-    return this.frame;
-  }
-
-  getKey(key) {
-    let repeat = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-    let result = this.pkey[key.toLowerCase()];
-    if (!repeat) this.pkey[key.toLowerCase()] = false;
-    return result;
-  }
-
-  clearKey(key) {
-    this.pkey[key.toLowerCase()] = false;
-  }
-
-  getMousePos() {
-    return {
-      x: this.mousex,
-      y: this.mousey
-    };
-  }
-
-  getClickPos() {
-    return {
-      x: this.clickx,
-      y: this.clicky
-    };
-  }
-
-  onStart() {}
-
-  onDraw(canvas, ctx, gamestate) {
-    if (!Array.isArray(this.gameobj) || this.gameobj.length === 0) return;
-    this.gameobj.forEach(obj => obj.draw(canvas, ctx, gamestate));
-  }
-
-  playObject(obj) {
-    obj.play;
-  }
-
-  playBase64(music) {
-    const datauri = 'data:audio/mp3;base64,' + music;
-    const sound = new Audio(datauri);
-    sound.play();
-    return sound;
-  }
-
-  playURL(url) {
-    const sound = new Audio(url);
-    sound.play();
-    return sound;
-  }
-
-}
-
-class GameObject {
-  constructor(_p, _x, _y, _w, _h, _s) {
-    this.parent = _p;
-    this.x = _x;
-    this.y = _y;
-    this.w = _w;
-    this.h = _h;
-    this.state = _s;
-  }
-
-  draw(canvas, ctx, gamestate) {}
-
-  drawRect(ctx, color) {
-    let fill = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
-    ctx.beginPath();
-    ctx.rect(this.x, this.y, this.w, this.h);
-
-    if (fill) {
-      ctx.fillStyle = color;
-      ctx.fill();
-    } else {
-      ctx.strokeStyle = color;
-      ctx.stroke();
-    }
-
-    ctx.closePath();
-  }
-
-  drawEllipse(ctx, color) {
-    let fill = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
-    ctx.beginPath();
-    ctx.ellipse(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, this.h / 2, 0, 0, Math.PI * 2);
-
-    if (fill) {
-      ctx.fillStyle = color;
-      ctx.fill();
-    } else {
-      ctx.strokeStyle = color;
-      ctx.stroke();
-    }
-
-    ctx.closePath();
-  }
-
-  get top() {
-    return this.y;
-  }
-
-  get bottom() {
-    return this.y + this.h;
-  }
-
-  get left() {
-    return this.x;
-  }
-
-  get right() {
-    return this.x + this.w;
-  }
-
-  static isCollision(a, b) {
-    let t = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -1;
-
-    if (b.left <= a.right && a.left <= b.right && b.top <= a.bottom && a.top <= b.bottom) {
-      //めり込み解消
-      if (t === 0) {
-        //y方向
-        //めり込み具合でどっちから当たったか判別
-        if (a.right - b.left - (b.right - a.left) >= 0) {
-          //左から
-          b.x = a.x - b.w - 1;
-        } else {
-          //右から
-          b.x = a.x + a.w + 1;
-        }
-      } else if (t === 1) {
-        //x方向
-        //めり込み具合でどっちから当たったか判別
-        if (a.bottom - b.top - (b.bottom - a.top) >= 0) {
-          //上から
-          b.y = a.y - b.h - 1;
-        } else {
-          //下から
-          b.y = a.y + a.h + 1;
-        }
-      }
-
-      return true;
-    }
-
-    return false;
-  }
-
-}
-
-class CollisionBase {
-  constructor() {
-    _defineProperty(this, "bullet", []);
-  }
-
-  isCollision(obj) {
-    let result = false;
-    this.bullet.forEach(bul => {
-      if (GameObject.isCollision(obj, bul)) {
-        result = true;
-        this.removeBullet(bul);
-      }
-    });
-    return result;
-  }
-
-  addBullet(_bullet) {
-    this.bullet.push(_bullet);
-  }
-
-  removeBullet(_bullet) {
-    if (this.bullet.indexOf(_bullet) > -1) {
-      this.bullet.splice(this.bullet.indexOf(_bullet), 1);
-
-      _bullet.remove();
-    }
-  }
-
-}
-
-class Bullet extends GameObject {
-  constructor(_p, _x, _y, _w, _h, _s, _col) {
-    super(_p, _x, _y, _w, _h, _s);
-
-    _defineProperty(this, "speed", 1);
-
-    _defineProperty(this, "move", 10);
-
-    this.col = _col;
-    this.col.addBullet(this);
-    this.parent.addObject(this);
-  }
-
-  draw(canvas, ctx, gamestate) {
-    this.drawEllipse(ctx, 'black', false);
-  }
-
-  remove() {
-    this.col.removeBullet(this);
-    this.parent.removeObject(this);
-  }
-
-  isMove() {
-    return this.parent.getFrame() % this.speed === 0;
-  }
-
-}
-
-class EnemyBullet extends Bullet {
-  draw(canvas, ctx, gamestate) {
-    super.draw(canvas, ctx, gamestate);
-
-    if (this.isMove()) {
-      this.y = this.y + this.move;
-    }
-
-    if (this.y > canvas.height) {
-      this.remove();
-    }
-  }
-
-}
-
-class PlayerBullet extends Bullet {
-  draw(canvas, ctx, gamestate) {
-    super.draw(canvas, ctx, gamestate);
-
-    if (this.isMove()) {
-      this.y = this.y - this.move;
-    }
-
-    if (this.y < 0) {
-      this.remove();
-    }
-  }
-
-}
-
-class Invader extends GameObject {
-  //0:右へ 1:右端で下がる 2:左へ 3:左端で下がる の繰り返し
-  constructor(_p, _x, _y, _w, _h, _s, _pcol, _ecol) {
-    super(_p, _x, _y, _w, _h, _s);
-    this.pcol = _pcol;
-    this.ecol = _ecol;
-    Invader.count++;
-  }
-
-  static InvaderInit() {
-    Invader.count = 0;
-    Invader.movemode = 0;
-    Invader.movechange = false;
-    Invader.level = 0;
-    Invader.islevelup = false;
-    Invader.changeframe = 0;
-    Invader.levelupframe = 0;
-  }
-
-  draw(canvas, ctx, gamestate) {
-    if (this.parent.gamestate === 1) {
-      if (this.ecol.isCollision(this)) {
-        this.parent.removeObject(this);
-        Invader.count--;
-
-        if (Invader.count <= Invader.levelup[Invader.level]) {
-          Invader.islevelup = true;
-          Invader.levelupframe = this.parent.frame;
-        }
-
-        if (Invader.count <= 0) {
-          document.getElementById('output').innerText = 'クリアです';
-          this.parent.gamestate = 3;
-        }
-
-        return;
-      }
-
-      if (Invader.islevelup && Invader.levelupframe < this.parent.frame) {
-        Invader.level++;
-        Invader.islevelup = false;
-      }
-
-      if (this.parent.frame % Invader.levelspeed[Invader.level] === 0) {
-        if (Invader.movechange && Invader.changeframe < this.parent.frame) {
-          Invader.movemode = (Invader.movemode + 1) % 4;
-          Invader.movechange = false;
-        }
-
-        switch (Invader.movemode) {
-          case 0:
-            //右に移動
-            this.x += Invader.move; //次移動したら当たりそうなら次は下に下がる
-
-            if (this.x + this.w + Invader.move > canvas.width) {
-              Invader.movechange = true;
-              Invader.changeframe = this.parent.frame;
-            }
-
-            break;
-
-          case 2:
-            //左に移動
-            this.x -= Invader.move;
-
-            if (this.x - Invader.move < 0) {
-              Invader.movechange = true;
-              Invader.changeframe = this.parent.frame;
-            }
-
-            break;
-
-          case 1: //下に移動
-
-          case 3:
-            this.y += this.h;
-            Invader.movechange = true;
-            Invader.changeframe = this.parent.frame;
-
-            if (this.y + this.h > 450) {
-              document.getElementById('output').innerText = 'ゲームオーバー';
-              this.parent.gamestate = 3;
-            }
-
-        }
-      }
-
-      if (Math.floor(Math.random() * 1000) === 0) {
-        if (this.pcol.bullet.length < 3) {
-          new EnemyBullet(this.parent, this.x + this.w / 2, this.y + this.h, 5, 5, 0, this.pcol);
-        }
-      }
-    }
-
-    this.drawEllipse(ctx, 'black', true);
-  }
-
-}
-
-_defineProperty(Invader, "count", 0);
-
-_defineProperty(Invader, "movemode", 0);
-
-_defineProperty(Invader, "changeframe", 0);
-
-_defineProperty(Invader, "movechange", false);
-
-_defineProperty(Invader, "move", 10);
-
-_defineProperty(Invader, "levelupframe", 0);
-
-_defineProperty(Invader, "levelspeed", [100, 50, 30, 20, 10, 5]);
-
-_defineProperty(Invader, "levelup", [40, 30, 20, 10, 5, -1]);
-
-_defineProperty(Invader, "islevelup", false);
-
-_defineProperty(Invader, "level", 0);
-
-class Player extends GameObject {
-  constructor(_p, _x, _y, _w, _h, _s, _pcol, _ecol) {
-    super(_p, _x, _y, _w, _h, _s);
-
-    _defineProperty(this, "count", 5);
-
-    _defineProperty(this, "speed", 10);
-
-    this.pcol = _pcol;
-    this.ecol = _ecol;
-  }
-
-  draw(canvas, ctx, gamestate) {
-    if (this.parent.gamestate === 1) {
-      if (this.parent.getKey('arrowleft', true)) {
-        if (this.x - this.speed < 0) {
-          this.x = 0;
-        } else {
-          this.x -= this.speed;
-        }
-      }
-
-      if (this.parent.getKey('arrowright', true)) {
-        if (this.x + this.w + this.speed > canvas.width) {
-          this.x = canvas.width - this.w;
-        } else {
-          this.x += this.speed;
-        }
-      }
-
-      if (this.parent.getKey('enter') || this.parent.getKey('space')) {
-        if (this.ecol.bullet.length < 1) {
-          new PlayerBullet(this.parent, this.x + this.w / 2, this.y, 5, 5, 0, this.ecol);
-        }
-      }
-
-      if (this.pcol.isCollision(this)) {
-        this.count--;
-
-        if (this.count < 0) {
-          document.getElementById('output').innerText = 'ゲームオーバー';
-          this.parent.gamestate = 3;
-        }
-
-        return;
-      }
-    } else if (this.parent.gamestate === 0 || this.parent.gamestate === 3) {
-      if (this.parent.getKey('mouse')) {
-        document.getElementById('output').innerText = '';
-        if (this.parent.gamestate === 3) this.parent.init();
-        this.parent.gamestate = 1;
-      }
-    }
-
-    if (this.count < 1) {
-      this.drawRect(ctx, 'red', true);
-    } else if (this.count < 3) {
-      this.drawRect(ctx, 'yellow', true);
-    } else {
-      this.drawRect(ctx, 'black', true);
-    }
-  }
-
-}
-
-class InvaderGame extends GameBase {
-  constructor(canvas) {
-    super(canvas);
-  }
-
-  init() {
-    Invader.InvaderInit();
-    this.gameobj = [];
-    this.gamestate = 0;
-    let pcol = new CollisionBase();
-    let ecol = new CollisionBase();
-    let player = new Player(this, 220, 450, 40, 20, 0, pcol, ecol);
-
-    for (let i = 0; i < 5; i++) {
-      for (let j = 0; j < 10; j++) {
-        this.addObject(new Invader(this, j * 40 + 30, i * 40 + 80, 30, 30, 0, pcol, ecol));
-      }
-    }
-
-    this.addObject(player);
-  }
-
-  onStart() {
-    this.init();
-  }
-
-}
-
-new InvaderGame('invader');
-</script>
+  <div id="canvas">
+    <canvas id="invader" width="480" height="480"></canvas>
+  </div>
+  <div id="output">クリックしてスタート</div>
 </body>
 
 </html>

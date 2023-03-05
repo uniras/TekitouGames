@@ -2,458 +2,291 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
-    <title>ポーカー</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        table {
-            border-spacing: 10px;
+  <meta charset="UTF-8">
+  <title>ポーカー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    table {
+      border-spacing: 10px;
+    }
+
+    td {
+      width: 100px;
+      height: 200px;
+    }
+
+    .card {
+      margin: 10px;
+      border: solid 1px;
+      text-align: center;
+      font-size: 48px;
+    }
+
+    .select {
+      opacity: 0.5;
+      background: lightgray;
+    }
+
+    #enter {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+  <script type="module">
+    import 'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js';
+    import Trump from './trump.js';
+
+    let trump;
+    let handname = ['ロイヤルストレートフラッシュ', 'ファイブカード', 'ストレートフラッシュ', 'フォーカード', 'フルハウス', 'フラッシュ', 'ストレート', 'スリーカード', 'ツーペア', 'ワンペア'];
+
+    //役の判定
+    const check = function (cards) {
+      let nums = [];
+      let suits = [];
+      for (let i = 0; i < 5; i++) {
+        nums.push(trump.getRawNumber(cards[i]));
+        suits.push(trump.getSuit(cards[i]));
+      }
+
+      if (isroyal(nums, suits)) return 0;
+      if (isfive(nums, suits)) return 1;
+      if (issflash(nums, suits)) return 2;
+      if (isfour(nums, suits)) return 3;
+      if (isfull(nums)) return 4;
+      if (isflash(suits)) return 5;
+      if (isstraight(nums)) return 6;
+      if (isthree(nums)) return 7;
+      if (istwopair(nums)) return 8;
+      if (ispair(nums)) return 9;
+
+      return -1;
+    }
+
+    //ロイヤルストレートフラッシュ(ジョーカーが絡む場合は不成立)
+    const isroyal = function (nums, suits) {
+      let roynum = [0, 9, 10, 11, 12];
+      for (let i = 0; i < 4; i++) {
+        if (suits[i] !== suits[i + 1]) return false;
+      }
+      for (let i = 0; i < 5; i++) {
+        if (nums[i] !== roynum[i]) return false;
+      }
+      return true;
+    }
+
+    //ファイブカード
+    const isfive = function (nums) {
+      //if (nums[3] === 13 && isthree(nums, false)) return true;
+      if (!isfour(nums, false)) return false;
+      if (nums[4] !== 13) return false;
+      return true;
+    }
+
+    //ストレートフラッシュ
+    const issflash = function (nums, suits) {
+      if (!isflash(suits)) return false;
+      if (!isstraight(nums)) return false;
+      return true;
+    }
+
+    //フォーカード
+    const isfour = function (nums, joker = true) {
+      //if (joker && nums[3] === 13 && ispair(nums))
+      if (joker && nums[4] === 13 && isthree(nums, false)) return true;
+      if (nums[0] === nums[1]) {
+        if (nums[0] === nums[3]) return true;
+      } else if (nums[1] === [2]) {
+        if (nums[1] === nums[4]) return true;
+      }
+      return false;
+    }
+
+    //フルハウス
+    const isfull = function (nums, joker = true) {
+      if (joker && nums[4] === 13 && istwopair(nums)) return true;
+      if (!isthree(nums)) return false;
+      if (nums[0] === nums[2] && nums[3] === nums[4]) return true;
+      if (nums[2] === nums[4] && nums[0] === nums[1]) return true;
+      return false;
+    }
+
+    //フラッシュ
+    const isflash = function (suits, joker = true) {
+      for (let i = 0; i < 4; i++) {
+        //if (joker && suits[3] === 4 && i == 2) return true;
+        if (joker && suits[4] === 4 && i == 3) return true;
+        if (suits[i] !== suits[i + 1]) return false;
+      }
+      return true;
+    }
+
+    //ストレート
+    const isstraight = function (nums, joker = true) {
+      let jk = 0;
+      let jkr = 0;
+      if (joker && nums[4] === 13) {
+        jk = 1;
+        jkr = 1;
+      }
+      /*
+      if(joker && nums[3] === 13 && nums[4] === 13){
+          jk = 2;
+          jkr = 2;
+      }
+      */
+      for (let i = 0; i < 4 - jkr; i++) {
+        if (i === 0 && nums[0] === 0 && nums[1] === 9) continue;
+        if (nums[i] === 12 || nums[i] + 1 !== nums[i + 1]) {
+          //ジョーカーで埋め合わせできるか？
+          if (jk === 0) return false;
+          if (jk === 1) {
+            if (nums[i] >= 11 || nums[i] + 2 !== nums[i + 1]) return false;
+            jk = 0;
+          }
+          /*
+          if (jk === 2) {
+              if (nums[i] < 11 && nums[i] + 2 === nums[i + 1]) {
+                  jk = 1;
+              } else if(nums[i] < 10 && nums[i] + 3 === nums[i + 1]) {
+                  jk = 0;
+              } else{
+                  return false;
+              }
+          }
+          */
         }
+      }
+      return true;
+    }
 
-        td {
-            width: 100px;
-            height: 200px;
+    //スリーカード
+    const isthree = function (nums, joker = true) {
+      //if (joker && nums[3] === 13 && nums[0] !== nums[1] && nums[1] !== nums[2]) return true;
+      if (joker && nums[4] === 13 && ispair(nums, false)) return true;
+      if (nums[0] === nums[2]) return true;
+      if (nums[1] === nums[3]) return true;
+      if (nums[2] === nums[4]) return true;
+      return false;
+    }
+
+    //ツーペア(ジョーカーがあって別のペアがあった場合それはスリーカードになるのでジョーカーありでツーペアは成立しない)
+    const istwopair = function (nums) {
+      if (nums[0] === nums[1] && nums[2] === nums[3]) return true;
+      if (nums[0] === nums[1] && nums[3] === nums[4]) return true;
+      if (nums[1] === nums[2] && nums[3] === nums[4]) return true;
+      return false;
+    }
+
+    //ワンペア
+    const ispair = function (nums, joker = true) {
+      if (joker && nums[4] === 13) return true;
+      for (let i = 0; i < 4; i++) {
+        if (nums[i] === nums[i + 1]) return true;
+      }
+      return false;
+    }
+
+    const draw = function (cards = null) {
+      if (cards === null) cards = trump.getCardArray(0);
+      for (let i = 0; i < 5; i++) {
+        $('#c' + i).html(trump.getCardHtml(cards[i]))
+      }
+    }
+
+    const game = async function () {
+      let state = 0;
+      let onenter = false;
+      trump = new Trump(1);
+      $('#enter').prop("disabled", true);
+      $('#enter').click(function () {
+        onenter = true;
+      })
+      $('.card').click(function () {
+        if (state !== 1) return;
+        if ($(this).hasClass('select')) {
+          $(this).removeClass('select');
+        } else {
+          $(this).addClass('select');
         }
+      });
 
-        .card {
-            margin: 10px;
-            border: solid 1px;
-            text-align: center;
-            font-size: 48px;
-        }
-
-        .select {
-            opacity: 0.5;
-            background: lightgray;
-        }
-
-        #enter {
-            width: 100%;
-            height: 100%;
-        }
-    </style>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
-    <script>
-        //トランプ管理クラス
-        class Trump {
-            deck = [];
-            player = [];
-            joker = 'JKR';
-            number = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', this.joker];
-            suithtml = ['<span style="color:black;">♠</span>', '<span style="color:red;">♥</span>', '<span style="color:red;">♦</span>', '<span style="color:black;">♣</span>', this.joker];
-            suit = ['♠', '♥', '♦', '♣', this.joker];
-            rank = [12, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13];
-
-            //コンストラクタ
-            constructor(players = 0, jokers = 1, shuffle = 10000) {
-                this.init(players, jokers, shuffle);
-            }
-
-            //現在のカード状態を全て破棄して初期化(players:プレイヤー数、jokers:ジョーカーの枚数(2枚まで)、shuffle:シャッフルするか(1以上でシャッフル))
-            init(players = 0, jokers = 1, shuffle = 10000) {
-                this.deck = [];
-                this.player = [];
-
-                if (jokers < 0) jokers = 0;
-                if (jokers > 2) jokers = 2;
-
-                for (let i = 0; i < 52 + jokers; i++) {
-                    this.deck.push(i);
-                }
-
-                if (players > 0) {
-                    for (let i = 0; i < players; i++) {
-                        this.player.push([]);
-                    }
-                }
-
-                if (shuffle > 0) {
-                    this.shuffle(-1, shuffle);
-                }
-            }
-
-            //デッキまたはプレイヤーのカードをシャッフル(0未満:デッキ, 0以上:プレーヤー)
-            shuffle(play = -1, times = 10000) {
-                if (play >= this.player.length) return -1;
-                let playary = play < 0 ? this.deck : this.player[play];
-
-                if (playary.length <= 0) return;
-
-                for (let i = 0; i < times; i++) {
-                    let rnd = Math.floor(Math.random() * playary.length);
-                    let buf = playary[0];
-                    playary[0] = playary[rnd];
-                    playary[rnd] = buf;
-                }
-            }
-
-            //デッキまたはプレイヤーのカードをカード番号順にソートする
-            sortCard(play) {
-                if (play >= this.player.length) return;
-                let playary = play < 0 ? this.deck : this.player[play];
-                playary.sort(function (a, b) {
-                    if (a < b) return -1;
-                    if (a > b) return 1;
-                    return 0;
-                });
-            }
-
-            //デッキまたはプレイヤーのカードを数値→スートの順にソートする
-            sortCardNumber(play) {
-                if (play >= this.player.length) return;
-                let playary = play < 0 ? this.deck : this.player[play];
-                playary.sort(function (a, b) {
-                    let anum = a > 51 ? 13 : a % 13;
-                    let bnum = b > 51 ? 13 : b % 13;
-                    let asu = Math.floor(a / 13);
-                    let bsu = Math.floor(b / 13);
-                    if (anum > bnum) return 1;
-                    if (anum < bnum) return -1;
-                    if (asu > bsu) return 1;
-                    if (asu < bsu) return -1;
-                    return 0;
-                });
-            }
-
-            //デッキまたはプレイヤーのカードを独自の関数を設定してソートする
-            sortFunction(play, func) {
-                if (play >= this.player.length) return;
-                let playary = play < 0 ? this.deck : this.player[play];
-                playary.sort(func);
-            }
-
-            //デッキまたはプレイヤーのカードの最初(一番上)をデッキまたは別のプレーヤーに渡す
-            sendCard(from, to) {
-                if (from >= this.player.length) return false;
-                if (to >= this.player.length) return false;
-                let fromary = from < 0 ? this.deck : this.player[from];
-                let toary = to < 0 ? this.deck : this.player[to];
-                if (fromary.length === 0) return false;
-                toary.unshift(fromary.shift());
-                return true;
-            }
-
-            //デッキまたはプレイヤーのカードの指定枚目をデッキまたは別のプレイヤーの(指定枚目)に渡す
-            sendCardIndex(from, findex, to, tindex = 0) {
-                if (from >= this.player.length) return false;
-                if (to >= this.player.length) return false;
-                let fromary = from < 0 ? this.deck : this.player[from];
-                let toary = to < 0 ? this.deck : this.player[to];
-                if (findex < 0 || findex >= fromary.length) return false;
-                if (tindex < 0) return false;
-                if (fromary.length === 0) return false;
-                toary.splice(tindex, 0, fromary.splice(findex, 1)[0]);
-                return true;
-            }
-
-            //デッキまたは現在のプレイヤーのカード所持枚数をチェック
-            getCardCount(play) {
-                if (play >= this.player.length) return -1;
-                let playary = play < 0 ? this.deck : this.player[play];
-                return playary.length;
-            }
-
-            //デッキまたはプレイヤーのカードの状態を表す配列(コピー)を取得
-            getCardArray(play) {
-                if (play >= this.player.length) return null;
-                let playary = play < 0 ? this.deck : this.player[play];
-                let result = [];
-                for (let i = 0; i < playary.length; i++) {
-                    result.push(playary[i]);
-                }
-                return result;
-            }
-
-            //カード番号からスートを表す番号を取得
-            getSuit(card) {
-                if (card < 0 || card > 53) return -1;
-                if (card === 52 || card === 53) return 4;
-                return Math.floor(card / 13);
-            }
-
-            //カード番号からカードの数値を取得(0オリジン)
-            getRawNumber(card) {
-                if (card < 0 || card > 53) return -1;
-                if (card === 52 || card === 53) return 13;
-                return card % 13;
-            }
-
-            //カード番号からカードの数値を取得(1オリジン)
-            getNumber(card) {
-                return this.getRawNumber(card) + 1;
-            }
-
-            //カードのランクを取得(ジョーカー→A→K～2の順に強さを判定する)
-            getRank(card) {
-                return this.rank[this.getRawNumber(card)];
-            }
-
-            //カード番号からカードを示す文字列を取得
-            getCardString(card) {
-                if (card < 0 || card > 53) return '';
-                if (card === 52 || card === 53) return this.joker;
-                return this.suit[Math.floor(card / 13)] + this.number[card % 13];
-            }
-
-            //カード番号からカードを示すHTML文字列を取得
-            getCardHtml(card) {
-                if (card < 0 || card > 53) return '';
-                if (card === 52 || card === 53) return this.joker;
-                return this.suithtml[Math.floor(card / 13)] + '<br>' + this.number[card % 13];
-            }
-        }
-
-        let trump;
-        let handname = ['ロイヤルストレートフラッシュ', 'ファイブカード', 'ストレートフラッシュ', 'フォーカード', 'フルハウス', 'フラッシュ', 'ストレート', 'スリーカード', 'ツーペア', 'ワンペア'];
-
-        //役の判定
-        const check = function (cards) {
-            let nums = [];
-            let suits = [];
+      while (true) {
+        switch (state) {
+          case 0:
+            trump.init(2);
             for (let i = 0; i < 5; i++) {
-                nums.push(trump.getRawNumber(cards[i]));
-                suits.push(trump.getSuit(cards[i]));
+              trump.sendCard(-1, 0);
             }
-
-            if (isroyal(nums, suits)) return 0;
-            if (isfive(nums, suits)) return 1;
-            if (issflash(nums, suits)) return 2;
-            if (isfour(nums, suits)) return 3;
-            if (isfull(nums)) return 4;
-            if (isflash(suits)) return 5;
-            if (isstraight(nums)) return 6;
-            if (isthree(nums)) return 7;
-            if (istwopair(nums)) return 8;
-            if (ispair(nums)) return 9;
-
-            return -1;
-        }
-
-        //ロイヤルストレートフラッシュ(ジョーカーが絡む場合は不成立)
-        const isroyal = function (nums, suits) {
-            let roynum = [0, 9, 10, 11, 12];
-            for (let i = 0; i < 4; i++) {
-                if (suits[i] !== suits[i + 1]) return false;
-            }
-            for (let i = 0; i < 5; i++) {
-                if (nums[i] !== roynum[i]) return false;
-            }
-            return true;
-        }
-
-        //ファイブカード
-        const isfive = function (nums) {
-            //if (nums[3] === 13 && isthree(nums, false)) return true;
-            if (!isfour(nums, false)) return false;
-            if (nums[4] !== 13) return false;
-            return true;
-        }
-
-        //ストレートフラッシュ
-        const issflash = function (nums, suits) {
-            if (!isflash(suits)) return false;
-            if (!isstraight(nums)) return false;
-            return true;
-        }
-
-        //フォーカード
-        const isfour = function (nums, joker = true) {
-            //if (joker && nums[3] === 13 && ispair(nums))
-            if (joker && nums[4] === 13 && isthree(nums, false)) return true;
-            if (nums[0] === nums[1]) {
-                if (nums[0] === nums[3]) return true;
-            } else if (nums[1] === [2]) {
-                if (nums[1] === nums[4]) return true;
-            }
-            return false;
-        }
-
-        //フルハウス
-        const isfull = function (nums, joker = true) {
-            if (joker && nums[4] === 13 && istwopair(nums)) return true;
-            if (!isthree(nums)) return false;
-            if (nums[0] === nums[2] && nums[3] === nums[4]) return true;
-            if (nums[2] === nums[4] && nums[0] === nums[1]) return true;
-            return false;
-        }
-
-        //フラッシュ
-        const isflash = function (suits, joker = true) {
-            for (let i = 0; i < 4; i++) {
-                //if (joker && suits[3] === 4 && i == 2) return true;
-                if (joker && suits[4] === 4 && i == 3) return true;
-                if (suits[i] !== suits[i + 1]) return false;
-            }
-            return true;
-        }
-
-        //ストレート
-        const isstraight = function (nums, joker = true) {
-            let jk = 0;
-            let jkr = 0;
-            if (joker && nums[4] === 13){
-                jk = 1;
-                jkr = 1;
-            }
-            /*
-            if(joker && nums[3] === 13 && nums[4] === 13){
-                jk = 2;
-                jkr = 2;
-            }
-            */
-            for (let i = 0; i < 4 - jkr; i++) {
-                if (i === 0 && nums[0] === 0 && nums[1] === 9) continue;
-                if (nums[i] === 12 || nums[i] + 1 !== nums[i + 1]) {
-                    //ジョーカーで埋め合わせできるか？
-                    if (jk === 0) return false;
-                    if (jk === 1) {
-                        if (nums[i] >= 11 || nums[i] + 2 !== nums[i + 1]) return false;
-                        jk = 0;
-                    }
-                    /*
-                    if (jk === 2) {
-                        if (nums[i] < 11 && nums[i] + 2 === nums[i + 1]) {
-                            jk = 1;
-                        } else if(nums[i] < 10 && nums[i] + 3 === nums[i + 1]) {
-                            jk = 0;
-                        } else{
-                            return false;
-                        }
-                    }
-                    */
+            trump.sortCardNumber(0);
+            draw();
+            $('#enter').prop("disabled", false);
+            $('#enter').text('決定');
+            $('#output').text('捨てるカードを選んで決定をクリックしてください。');
+            state = 1;
+            break;
+          case 1:
+            if (onenter) {
+              onenter = false;
+              for (let i = 0; i < 5; i++) {
+                if ($('#c' + i).hasClass('select')) {
+                  trump.sendCardIndex(0, i, 1, 0);
+                  trump.sendCardIndex(-1, 0, 0, i);
+                  $('#c' + i).removeClass('select')
                 }
+              }
+              trump.sortCardNumber(0);
+              draw();
+              let hand = check(trump.getCardArray(0));
+              if (hand === -1) {
+                $('#output').text('残念でした。');
+              } else {
+                $('#output').text('おめでとうございます！' + handname[hand] + 'です。');
+              }
+              $('#enter').text('もう一度');
+              state = 2;
             }
-            return true;
-        }
-
-        //スリーカード
-        const isthree = function (nums, joker = true) {
-            //if (joker && nums[3] === 13 && nums[0] !== nums[1] && nums[1] !== nums[2]) return true;
-            if (joker && nums[4] === 13 && ispair(nums, false)) return true;
-            if (nums[0] === nums[2]) return true;
-            if (nums[1] === nums[3]) return true;
-            if (nums[2] === nums[4]) return true;
-            return false;
-        }
-
-        //ツーペア(ジョーカーがあって別のペアがあった場合それはスリーカードになるのでジョーカーありでツーペアは成立しない)
-        const istwopair = function (nums) {
-            if (nums[0] === nums[1] && nums[2] === nums[3]) return true;
-            if (nums[0] === nums[1] && nums[3] === nums[4]) return true;
-            if (nums[1] === nums[2] && nums[3] === nums[4]) return true;
-            return false;
-        }
-
-        //ワンペア
-        const ispair = function (nums, joker = true) {
-            if (joker && nums[4] === 13) return true;
-            for (let i = 0; i < 4; i++) {
-                if (nums[i] === nums[i + 1]) return true;
-            }
-            return false;
-        }
-
-        const draw = function (cards = null) {
-            if (cards === null) cards = trump.getCardArray(0);
-            for (let i = 0; i < 5; i++) {
-                $('#c' + i).html(trump.getCardHtml(cards[i]))
+            break;
+          case 2:
+            if (onenter) {
+              onenter = false;
+              $('#enter').prop("disabled", true);
+              state = 0;
             }
         }
+        await new Promise(s => setTimeout(s, 100));
+      }
+    }
 
-        const game = async function () {
-            let state = 0;
-            let onenter = false;
-            trump = new Trump(1);
-            $('#enter').prop("disabled", true);
-            $('#enter').click(function () {
-                onenter = true;
-            })
-            $('.card').click(function () {
-                if (state !== 1) return;
-                if ($(this).hasClass('select')) {
-                    $(this).removeClass('select');
-                } else {
-                    $(this).addClass('select');
-                }
-            });
-
-            while (true) {
-                switch (state) {
-                    case 0:
-                        trump.init(2);
-                        for (let i = 0; i < 5; i++) {
-                            trump.sendCard(-1, 0);
-                        }
-                        trump.sortCardNumber(0);
-                        draw();
-                        $('#enter').prop("disabled", false);
-                        $('#enter').text('決定');
-                        $('#output').text('捨てるカードを選んで決定をクリックしてください。');
-                        state = 1;
-                        break;
-                    case 1:
-                        if (onenter) {
-                            onenter = false;
-                            for (let i = 0; i < 5; i++) {
-                                if ($('#c' + i).hasClass('select')) {
-                                    trump.sendCardIndex(0, i, 1, 0);
-                                    trump.sendCardIndex(-1, 0, 0, i);
-                                    $('#c' + i).removeClass('select')
-                                }
-                            }
-                            trump.sortCardNumber(0);
-                            draw();
-                            let hand = check(trump.getCardArray(0));
-                            if (hand === -1) {
-                                $('#output').text('残念でした。');
-                            } else {
-                                $('#output').text('おめでとうございます！' + handname[hand] + 'です。');
-                            }
-                            $('#enter').text('もう一度');
-                            state = 2;
-                        }
-                        break;
-                    case 2:
-                        if (onenter) {
-                            onenter = false;
-                            $('#enter').prop("disabled", true);
-                            state = 0;
-                        }
-                }
-                await new Promise(s => setTimeout(s, 100));
-            }
-        }
-
-        $(document).ready(function () {
-            game();
-        });
-    </script>
+    $(document).ready(function () {
+      game();
+    });
+  </script>
 </head>
 
 <body>
-    <div id="output"></div>
-    <table id="board">
-        <tbody>
-            <tr>
-                <td id="c0" class="card"></td>
-                <td id="c1" class="card"></td>
-                <td id="c2" class="card"></td>
-                <td id="c3" class="card"></td>
-                <td id="c4" class="card"></td>
-                <td><button id="enter">決定</button></td>
-            </tr>
-        </tbody>
-    </table>
-    <div id="instruction">
-        <p>遊び方</p>
-        <p>
-            クリックすることで捨てるカードを選べます。<br>
-            (カードが薄い灰色になります)<br>
-            決まったら「決定」ボタンをクリックしてください。<br>
-            カードを交換し、役を判定します。<br>
-            「もう一度」をクリックすると繰り返しプレイできます。
-        </p>
-    </div>
+  <div id="output"></div>
+  <table id="board">
+    <tbody>
+      <tr>
+        <td id="c0" class="card"></td>
+        <td id="c1" class="card"></td>
+        <td id="c2" class="card"></td>
+        <td id="c3" class="card"></td>
+        <td id="c4" class="card"></td>
+        <td><button id="enter">決定</button></td>
+      </tr>
+    </tbody>
+  </table>
+  <div id="instruction">
+    <p>遊び方</p>
+    <p>
+      クリックすることで捨てるカードを選べます。<br>
+      (カードが薄い灰色になります)<br>
+      決まったら「決定」ボタンをクリックしてください。<br>
+      カードを交換し、役を判定します。<br>
+      「もう一度」をクリックすると繰り返しプレイできます。
+    </p>
+  </div>
 </body>
 
 </html>

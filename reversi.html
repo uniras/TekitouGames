@@ -2,312 +2,313 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リバーシ</title>
-    <style>
-        table {
-            border-collapse: collapse;
-            table-layout: fixed;
-            border: double 5px;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>リバーシ</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: double 5px;
+    }
+
+    td {
+      width: 50px;
+      height: 50px;
+      background: green;
+      border: solid 1px;
+      padding: 0;
+      line-height: 0;
+    }
+  </style>
+  <script type="module">
+    import 'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js';
+
+    //ボードの状態を表す配列
+    const board = [
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 2, 1, 0, 0, 0],
+      [0, 0, 0, 1, 2, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+    ]
+
+    //8方向のベクトル
+    const vecxs = [0, 1, 1, 1, 0, -1, -1, -1];
+    const vecys = [-1, -1, 0, 1, 1, 1, 0, -1];
+
+    //ターン数
+    let turn = 1;
+
+    //クリックされた要素
+    let clickobj = null;
+
+    //現在のターンが何色かを取得
+    const getTurnColor = function (turn) {
+      return 2 - (turn % 2);
+    }
+
+    //idからx,y位置を取得
+    const getIdPos = function (id) {
+      const result = { x: -1, y: -1 };
+      const match = id.match(/^c(\d+)_(\d+)$/);
+
+      if (match != null) {
+        result.x = parseInt(match[2]);
+        result.y = parseInt(match[1]);
+      }
+
+      return result;
+    }
+
+    //idの場所の状態を取得
+    const getIdValue = function (id) {
+      const pos = getIdPos(id);
+      return board[pos.y][pos.x];
+    }
+
+    //idの場所の状態を変更
+    const setIdValue = function (id, val) {
+      const pos = getIdPos(id);
+      board[pos.y][pos.x] = val;
+    }
+
+    //現在のboardの状態を描画する
+    const draw = function () {
+      for (let i = 0; i < board.length; i++) {
+        for (let j = 0; j < board[i].length; j++) {
+          switch (board[i][j]) {
+            case 0:
+              $('#c' + i + '_' + j + ' > svg').html('');
+              break;
+            case 1:
+              $('#c' + i + '_' + j + ' > svg').html('<circle cx="25" cy="25" r="23" stroke="black" stroke-width="1" fill="black" />');
+              break;
+            case 2:
+              $('#c' + i + '_' + j + ' > svg').html('<circle cx="25" cy="25" r="23" stroke="black" stroke-width="1" fill="white" />');
+              break;
+          }
         }
+      }
+    }
 
-        td {
-            width: 50px;
-            height: 50px;
-            background: green;
-            border: solid 1px;
-            padding: 0;
-            line-height: 0;
+    //特定の方向に駒が置けるかどうかをチェック
+    const checkflipvec = function (col, vecx, vecy, x, y, cnt) {
+      if (x < 0 || y < 0 || x >= board[0].length || y >= board.length) return false;
+      if (cnt > 0 && board[y][x] === 0) return false;
+      if (cnt === 1 && board[y][x] === col) return false;
+      if (cnt > 1 && board[y][x] === col) return true;
+      return checkflipvec(col, vecx, vecy, x + vecx, y + vecy, cnt + 1);
+    }
+
+    //駒が置けるかを8方向チェック
+    const checkflip = function (col, x, y) {
+      if (board[y][x] !== 0) return false;
+      for (let i = 0; i < 8; i++) {
+        let result = checkflipvec(col, vecxs[i], vecys[i], x, y, 0);
+        if (result) return true;
+      }
+      return false;
+    }
+
+    //特定の方向の駒を反転する
+    const setflipvec = function (col, vecx, vecy, x, y, cnt) {
+      if (x < 0 || y < 0 || x >= board[0].length || y >= board.length) return false;
+      if (board[y][x] === 0) return false;
+      if (cnt === 1 && board[y][x] === col) return false;
+      if (cnt > 1 && board[y][x] === col) return true;
+      let result = setflipvec(col, vecx, vecy, x + vecx, y + vecy, cnt + 1);
+      if (result) board[y][x] = col;
+      return result;
+    }
+
+    //8方向駒を反転
+    const setflip = function (col, x, y) {
+      for (let i = 0; i < 8; i++) {
+        setflipvec(col, vecxs[i], vecys[i], x, y, 0);
+      }
+    }
+
+    //置く場所があるかどうかのチェック
+    const passcheck = function (col) {
+      for (let i = 0; i < board.length; i++) {
+        for (let j = 0; j < board[i].length; j++) {
+          if (board[i][j] === 0) {
+            if (checkflip(col, j, i)) return false;
+          }
         }
-    </style>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
-    <script>
-        //ボードの状態を表す配列
-        const board = [
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 2, 1, 0, 0, 0],
-            [0, 0, 0, 1, 2, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-        ]
+      }
+      return true;
+    }
 
-        //8方向のベクトル
-        const vecxs = [0, 1, 1, 1, 0, -1, -1, -1];
-        const vecys = [-1, -1, 0, 1, 1, 1, 0, -1];
-
-        //ターン数
-        let turn = 1;
-
-        //クリックされた要素
-        let clickobj = null;
-
-        //現在のターンが何色かを取得
-        const getTurnColor = function (turn) {
-            return 2 - (turn % 2);
+    //駒の数をカウント
+    const count = function (col) {
+      let cnt = 0;
+      for (let i = 0; i < board.length; i++) {
+        for (let j = 0; j < board[i].length; j++) {
+          if (board[i][j] === col) cnt++;
         }
+      }
+      return cnt;
+    }
 
-        //idからx,y位置を取得
-        const getIdPos = function (id) {
-            const result = { x: -1, y: -1 };
-            const match = id.match(/^c(\d+)_(\d+)$/);
+    //置ける場所のリストを取得
+    const getPosList = function (col) {
+      let result = [];
+      for (let i = 0; i < board.length; i++) {
+        for (let j = 0; j < board[i].length; j++) {
+          if (board[i][j] === 0) {
+            if (checkflip(col, j, i)) result.push({ x: j, y: i });
+          }
+        }
+      }
+      return result;
+    }
 
-            if (match != null) {
-                result.x = parseInt(match[2]);
-                result.y = parseInt(match[1]);
+    //メインループ
+    const loop = async function () {
+      let id = null;
+      let pos = {};
+      while (true) {
+        let col = getTurnColor(turn);
+        if (col === 1) {
+          //プレイヤー(黒)のターン
+          if (clickobj !== null) {
+            //クリックされたらidを取得する
+            id = clickobj.attr('id');
+            clickobj = null;
+          } else {
+            //クリックされるまで待つ
+            await new Promise(s => setTimeout(s, 100));
+            continue;
+          }
+          pos = getIdPos(id);
+        } else {
+          //COM(白)のターン
+          //すぐ打つとアレなので2秒待つ
+          await new Promise(s => setTimeout(s, 2000));
+
+          //置ける場所のリストを取得
+          let poslist = getPosList(col);
+
+          //リストが取得できないなんてことはありえないはず・・・
+          if (poslist.length < 1) {
+            $('#output').html('内部エラーが発生したため終了します');
+            break;
+          }
+
+          //リストの中からランダムで選ぶ
+          let rnd = Math.floor(Math.random() * poslist.length);
+          pos = poslist[rnd];
+
+          //手動で打つ
+          /*
+          if (clickobj !== null) {
+              id = clickobj.attr('id');
+              clickobj = null;
+          } else {
+              await new Promise(s => setTimeout(s, 100));
+              continue;
+          }
+          */
+        }
+        let mes = '';
+
+        //クリックされた場所・COMの選んだ場所が置ける場所どうかチェック
+        if (checkflip(col, pos.x, pos.y)) {
+          //置ける場所なら処理
+          board[pos.y][pos.x] = col;
+          setflip(col, pos.x, pos.y);
+          turn++;
+          col = getTurnColor(turn);
+          //次の手番で置く場所があるかどうか
+          if (passcheck(col)) {
+            //次の手番で置く場所がなければパスの処理
+            //パスされた旨のメッセージを追加。
+            mes = '置くところがないのでパスしました。';
+            turn++;
+            col = getTurnColor(turn);
+            //さらに次の手で置く場所があるかチェック
+            if (passcheck(col)) {
+              //置く場所がなければ両者置く場所がないということでゲーム終了
+              let black = count(1);
+              let white = count(2);
+              let winmsg = black === white ? '引き分けです。' : black > white ? '黒の勝ちです。' : '白の勝ちです。';
+              $('#output').html('終了します、黒:' + black + ' - 白:' + white + 'で、' + winmsg);
+              turn = -1;
+              draw();
+              break;
             }
+          }
+          draw();
 
-            return result;
+          //どちらのターンかを示すメッセージを表示
+          if ((turn % 2) === 0) {
+            $('#output').html(mes + '白のターンです');
+          } else {
+            $('#output').html(mes + '黒のターンです');
+          }
         }
+      }
+    }
 
-        //idの場所の状態を取得
-        const getIdValue = function (id) {
-            const pos = getIdPos(id);
-            return board[pos.y][pos.x];
+    //初期処理
+    const init = function () {
+      //ボードの生成
+      let boardobj = $('#board')
+      for (let i = 0; i < board.length; i++) {
+        boardobj.append('<tr id="r_' + i + '"></tr>');
+        for (let j = 0; j < board[i].length; j++) {
+          $('#r_' + i).append('<td class="cell" id="c' + i + '_' + j + '"><svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"></svg></td>')
         }
+      }
 
-        //idの場所の状態を変更
-        const setIdValue = function (id, val) {
-            const pos = getIdPos(id);
-            board[pos.y][pos.x] = val;
+      //ホバーイベントの設定
+      $('.cell').hover(function () {
+        //黒のターンのみ有効
+        if (turn === -1) return;
+        if (turn % 2 === 0) return;
+
+        //置ける場所にポインタがある時だけ半透明にする
+        let col = getTurnColor(turn);
+        let id = $(this).attr('id');
+        let pos = getIdPos(id);
+        if (checkflip(col, pos.x, pos.y)) {
+          $(this).css('opacity', '0.5');
         }
+      }, function () {
+        $(this).css('opacity', '1');
+      });
 
-        //現在のboardの状態を描画する
-        const draw = function () {
-            for (let i = 0; i < board.length; i++) {
-                for (let j = 0; j < board[i].length; j++) {
-                    switch (board[i][j]) {
-                        case 0:
-                            $('#c' + i + '_' + j + ' > svg').html('');
-                            break;
-                        case 1:
-                            $('#c' + i + '_' + j + ' > svg').html('<circle cx="25" cy="25" r="23" stroke="black" stroke-width="1" fill="black" />');
-                            break;
-                        case 2:
-                            $('#c' + i + '_' + j + ' > svg').html('<circle cx="25" cy="25" r="23" stroke="black" stroke-width="1" fill="white" />');
-                            break;
-                    }
-                }
-            }
-        }
+      //クリックイベントの設定
+      $('.cell').click(function () {
+        //黒のターンのみ有効
+        if (turn === -1) return;
+        if (turn % 2 === 0) return; //白番も手動にする場合はこれをコメントアウト
 
-        //特定の方向に駒が置けるかどうかをチェック
-        const checkflipvec = function (col, vecx, vecy, x, y, cnt) {
-            if (x < 0 || y < 0 || x >= board[0].length || y >= board.length) return false;
-            if (cnt > 0 && board[y][x] === 0) return false;
-            if (cnt === 1 && board[y][x] === col) return false;
-            if (cnt > 1 && board[y][x] === col) return true;
-            return checkflipvec(col, vecx, vecy, x + vecx, y + vecy, cnt + 1);
-        }
+        //ひとまずクリックした場所を記録(判定はメインループ内で)
+        clickobj = $(this);
+      });
 
-        //駒が置けるかを8方向チェック
-        const checkflip = function (col, x, y) {
-            if (board[y][x] !== 0) return false;
-            for (let i = 0; i < 8; i++) {
-                let result = checkflipvec(col, vecxs[i], vecys[i], x, y, 0);
-                if (result) return true;
-            }
-            return false;
-        }
+      //初期メッセージ
+      $('#output').html('黒のターンです');
+    }
 
-        //特定の方向の駒を反転する
-        const setflipvec = function (col, vecx, vecy, x, y, cnt) {
-            if (x < 0 || y < 0 || x >= board[0].length || y >= board.length) return false;
-            if (board[y][x] === 0) return false;
-            if (cnt === 1 && board[y][x] === col) return false;
-            if (cnt > 1 && board[y][x] === col) return true;
-            result = setflipvec(col, vecx, vecy, x + vecx, y + vecy, cnt + 1);
-            if (result) board[y][x] = col;
-            return result;
-        }
-
-        //8方向駒を反転
-        const setflip = function (col, x, y) {
-            for (let i = 0; i < 8; i++) {
-                setflipvec(col, vecxs[i], vecys[i], x, y, 0);
-            }
-        }
-
-        //置く場所があるかどうかのチェック
-        const passcheck = function (col) {
-            for (let i = 0; i < board.length; i++) {
-                for (let j = 0; j < board[i].length; j++) {
-                    if (board[i][j] === 0) {
-                        if (checkflip(col, j, i)) return false;
-                    }
-                }
-            }
-            return true;
-        }
-
-        //駒の数をカウント
-        const count = function (col) {
-            let cnt = 0;
-            for (let i = 0; i < board.length; i++) {
-                for (let j = 0; j < board[i].length; j++) {
-                    if (board[i][j] === col) cnt++;
-                }
-            }
-            return cnt;
-        }
-
-        //置ける場所のリストを取得
-        const getPosList = function (col) {
-            result = [];
-            for (let i = 0; i < board.length; i++) {
-                for (let j = 0; j < board[i].length; j++) {
-                    if (board[i][j] === 0) {
-                        if (checkflip(col, j, i)) result.push({ x: j, y: i });
-                    }
-                }
-            }
-            return result;
-        }
-
-        //メインループ
-        const loop = async function () {
-            let id = null;
-            let pos = {};
-            while (true) {
-                let col = getTurnColor(turn);
-                if (col === 1) {
-                    //プレイヤー(黒)のターン
-                    if (clickobj !== null) {
-                        //クリックされたらidを取得する
-                        id = clickobj.attr('id');
-                        clickobj = null;
-                    } else {
-                        //クリックされるまで待つ
-                        await new Promise(s => setTimeout(s, 100));
-                        continue;
-                    }
-                    pos = getIdPos(id);
-                } else {
-                    //COM(白)のターン
-                    //すぐ打つとアレなので2秒待つ
-                    await new Promise(s => setTimeout(s, 2000));
-
-                    //置ける場所のリストを取得
-                    let poslist = getPosList(col);
-
-                    //リストが取得できないなんてことはありえないはず・・・
-                    if (poslist.length < 1) {
-                        $('#output').html('内部エラーが発生したため終了します');
-                        break;
-                    }
-
-                    //リストの中からランダムで選ぶ
-                    let rnd = Math.floor(Math.random() * poslist.length);
-                    pos = poslist[rnd];
-
-                    //手動で打つ
-                    /*
-                    if (clickobj !== null) {
-                        id = clickobj.attr('id');
-                        clickobj = null;
-                    } else {
-                        await new Promise(s => setTimeout(s, 100));
-                        continue;
-                    }
-                    */
-                }
-                let mes = '';
-
-                //クリックされた場所・COMの選んだ場所が置ける場所どうかチェック
-                if (checkflip(col, pos.x, pos.y)) {
-                    //置ける場所なら処理
-                    board[pos.y][pos.x] = col;
-                    setflip(col, pos.x, pos.y);
-                    turn++;
-                    col = getTurnColor(turn);
-                    //次の手番で置く場所があるかどうか
-                    if (passcheck(col)) {
-                        //次の手番で置く場所がなければパスの処理
-                        //パスされた旨のメッセージを追加。
-                        mes = '置くところがないのでパスしました。';
-                        turn++;
-                        col = getTurnColor(turn);
-                        //さらに次の手で置く場所があるかチェック
-                        if (passcheck(col)) {
-                            //置く場所がなければ両者置く場所がないということでゲーム終了
-                            let black = count(1);
-                            let white = count(2);
-                            let winmsg = black === white ? '引き分けです。' : black > white ? '黒の勝ちです。' : '白の勝ちです。';
-                            $('#output').html('終了します、黒:' + black + ' - 白:' + white + 'で、' + winmsg);
-                            turn = -1;
-                            draw();
-                            break;
-                        }
-                    }
-                    draw();
-
-                    //どちらのターンかを示すメッセージを表示
-                    if ((turn % 2) === 0) {
-                        $('#output').html(mes + '白のターンです');
-                    } else {
-                        $('#output').html(mes + '黒のターンです');
-                    }
-                }
-            }
-        }
-
-        //初期処理
-        const init = function () {
-            //ボードの生成
-            let boardobj = $('#board')
-            for (let i = 0; i < board.length; i++) {
-                boardobj.append('<tr id="r_' + i + '"></tr>');
-                for (let j = 0; j < board[i].length; j++) {
-                    $('#r_' + i).append('<td class="cell" id="c' + i + '_' + j + '"><svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"></svg></td>')
-                }
-            }
-
-            //ホバーイベントの設定
-            $('.cell').hover(function () {
-                //黒のターンのみ有効
-                if (turn === -1) return;
-                if (turn % 2 === 0) return;
-
-                //置ける場所にポインタがある時だけ半透明にする
-                let col = getTurnColor(turn);
-                let id = $(this).attr('id');
-                let pos = getIdPos(id);
-                if (checkflip(col, pos.x, pos.y)) {
-                    $(this).css('opacity', '0.5');
-                }
-            }, function () {
-                $(this).css('opacity', '1');
-            });
-
-            //クリックイベントの設定
-            $('.cell').click(function () {
-                //黒のターンのみ有効
-                if (turn === -1) return;
-                if (turn % 2 === 0) return; //白番も手動にする場合はこれをコメントアウト
-
-                //ひとまずクリックした場所を記録(判定はメインループ内で)
-                clickobj = $(this);
-            });
-
-            //初期メッセージ
-            $('#output').html('黒のターンです');
-        }
-
-        $(document).ready(function () {
-            init();
-            draw();
-            loop();
-        });
-    </script>
+    $(document).ready(function () {
+      init();
+      draw();
+      loop();
+    });
+  </script>
 </head>
 
 <body>
-    <div id="output"></div>
-    <table id="board">
-    </table>
+  <div id="output"></div>
+  <table id="board">
+  </table>
 </body>
 
 </html>

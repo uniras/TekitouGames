@@ -2,180 +2,181 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ニム</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .card {
-            margin: 20px;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ニム</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .card {
+      margin: 20px;
+    }
 
-        #output {
-            margin-top: 10px;
-        }
+    #output {
+      margin-top: 10px;
+    }
 
-        .nimform {
-            margin-bottom: 20px;
-            margin-left: 20px;
-        }
+    .nimform {
+      margin-bottom: 20px;
+      margin-left: 20px;
+    }
 
-        #counter {
-            margin-top: 20px;
-            font-size: 48px;
-        }
+    #counter {
+      margin-top: 20px;
+      font-size: 48px;
+    }
 
-        .container {
-            margin: 0;
-        }
-    </style>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
-    <script>
-        let state = 0;
-        let turn = 1;
-        let val = 0;
-        let clickobj = null;
-        let player;
-        let typearray = [10, 30, 30, 50, 10, 100];
-        let mesarray = ['COMの番です。', 'あなたの番です。減らす数を選んでください。', 'あなたの負けです。', 'あなたの勝ちです。'];
+    .container {
+      margin: 0;
+    }
+  </style>
+  <script type="module">
+    import 'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js';
 
-        const compute = function () {
-            //4未満ならその数を取って勝ちをもぎ取る
-            if (val < 4) return val;
+    let win = 0;
+    let state = 0;
+    let turn = 1;
+    let val = 0;
+    let clickobj = null;
+    let player;
+    let typearray = [10, 30, 30, 50, 10, 100];
+    let mesarray = ['COMの番です。', 'あなたの番です。減らす数を選んでください。', 'あなたの負けです。', 'あなたの勝ちです。'];
 
-            //4で割り切れない値なら4で割り切れる値にする(最適行動)
-            let sel = val % 4;
-            if (sel !== 0) return sel;
+    const compute = function () {
+      //4未満ならその数を取って勝ちをもぎ取る
+      if (val < 4) return val;
 
-            //4で割り切れる値なら仕方ないのでランダムに取る数を決める
-            sel = Math.floor(Math.random() * 3) + 1;
-            return sel;
-        }
+      //4で割り切れない値なら4で割り切れる値にする(最適行動)
+      let sel = val % 4;
+      if (sel !== 0) return sel;
 
-        const init = function () {
-            $('#start').click(function () {
-                state = 1;
-            });
+      //4で割り切れる値なら仕方ないのでランダムに取る数を決める
+      sel = Math.floor(Math.random() * 3) + 1;
+      return sel;
+    }
 
-            $('.gbtn').click(function () {
-                clickobj = $(this);
-            });
-        }
+    const init = function () {
+      $('#start').click(function () {
+        state = 1;
+      });
 
-        const getobjnum = function (obj) {
-            return parseInt(obj.text());
-        }
+      $('.gbtn').click(function () {
+        clickobj = $(this);
+      });
+    }
 
-        const draw = function () {
-            $('#counter').text(val);
-        }
+    const getobjnum = function (obj) {
+      return parseInt(obj.text());
+    }
 
-        const loop = async function () {
-            while (true) {
-                switch (state) {
-                    case 0:
-                        break;
-                    case 1:
-                        start = 0;
-                        turn = 1;
-                        $('.gselect').attr('disabled', true);
-                        player = parseInt($('input:radio[name="turn"]:checked').val());
-                        let type = parseInt($("#type").val());
-                        val = Math.floor(Math.random() * (typearray[type * 2 + 1] - typearray[type * 2] + 1)) + typearray[type * 2];
-                        draw();
-                        if (player === 1) $('.gbtn').attr('disabled', false);
-                        $('#output').text(mesarray[player]);
-                        state = 2;
-                        break;
-                    case 2:
-                        if (turn % 2 === player) {
-                            if (clickobj !== null) {
-                                let selnum = getobjnum(clickobj);
-                                clickobj = null;
-                                val -= selnum;
-                                draw();
-                                $('.gbtn').attr('disabled', true);
-                                if (val === 0) {
-                                    win = 1;
-                                    state = 3;
-                                } else {
-                                    $('#output').text(mesarray[0]);
-                                    turn++;
-                                }
-                            }
-                        } else {
-                            await new Promise(s => setTimeout(s, 1000));
-                            let selnum = compute();
-                            val -= selnum;
-                            draw();
-                            if (val === 0) {
-                                win = 0;
-                                state = 3;
-                            } else {
-                                $('#output').text(mesarray[1]);
-                                $('.gbtn').attr('disabled', false);
-                                if (val < 3) $('#s3').attr('disabled', true);
-                                if (val < 2) $('#s2').attr('disabled', true);
-                                turn++;
-                            }
-                        }
-                        break;
-                    case 3:
-                        $('.gbtn').attr('disabled', true);
-                        $('.gselect').attr('disabled', false);
-                        $('#output').text(mesarray[2 + win]);
-                        break;
+    const draw = function () {
+      $('#counter').text(val);
+    }
+
+    const loop = async function () {
+      while (true) {
+        switch (state) {
+          case 0:
+            break;
+          case 1:
+            turn = 1;
+            $('.gselect').attr('disabled', true);
+            player = parseInt($('input:radio[name="turn"]:checked').val());
+            let type = parseInt($("#type").val());
+            val = Math.floor(Math.random() * (typearray[type * 2 + 1] - typearray[type * 2] + 1)) + typearray[type * 2];
+            draw();
+            if (player === 1) $('.gbtn').attr('disabled', false);
+            $('#output').text(mesarray[player]);
+            state = 2;
+            break;
+          case 2:
+            if (turn % 2 === player) {
+              if (clickobj !== null) {
+                let selnum = getobjnum(clickobj);
+                clickobj = null;
+                val -= selnum;
+                draw();
+                $('.gbtn').attr('disabled', true);
+                if (val === 0) {
+                  win = 1;
+                  state = 3;
+                } else {
+                  $('#output').text(mesarray[0]);
+                  turn++;
                 }
-                await new Promise(s => setTimeout(s, 100));
+              }
+            } else {
+              await new Promise(s => setTimeout(s, 1000));
+              let selnum = compute();
+              val -= selnum;
+              draw();
+              if (val === 0) {
+                win = 0;
+                state = 3;
+              } else {
+                $('#output').text(mesarray[1]);
+                $('.gbtn').attr('disabled', false);
+                if (val < 3) $('#s3').attr('disabled', true);
+                if (val < 2) $('#s2').attr('disabled', true);
+                turn++;
+              }
             }
+            break;
+          case 3:
+            $('.gbtn').attr('disabled', true);
+            $('.gselect').attr('disabled', false);
+            $('#output').text(mesarray[2 + win]);
+            break;
         }
+        await new Promise(s => setTimeout(s, 100));
+      }
+    }
 
-        $(document).ready(function () {
-            init();
-            loop();
-        });
-    </script>
+    $(document).ready(function () {
+      init();
+      loop();
+    });
+  </script>
 </head>
 
 <body>
-    <div class="container" id="base">
-        <div class="row">
-            <div class="col-xxl-4 col-lg-6 col-md-8 col-xs-12">
-                <div class="card">
-                    <h5 class="card-header text-center">ニム</h5>
-                    <div class="nimform" id="output">先攻後攻と難易度を選んで開始を押してください。</div>
-                    <form onsubmit="return false;">
-                        <div class="nimform text-center" id="counter">0</div>
-                        <div class="nimform">
-                            <div class="container text-center">
-                                <button id="s1" class="gbtn btn btn-primary" disabled>1</button>
-                                <button id="s2" class="gbtn btn btn-primary" disabled>2</button>
-                                <button id="s3" class="gbtn btn btn-primary" disabled>3</button>
-                            </div>
-                        </div>
-                    </form>
-                    <hr>
-                    <form onsubmit="return false;">
-                        <div class="nimform">
-                            <input class="gselect" type="radio" name="turn" value="1" checked="checked">先攻
-                            <input class="gselect" type="radio" name="turn" value="0">後攻
-                        </div>
-                        <div class="nimform">
-                            初期値
-                            <select class="gselect" name="type" id="type">
-                                <option value="0">10～30ランダム</option>
-                                <option value="1">30～50ランダム</option>
-                                <option value="2">10～100ランダム</option>
-                            </select>
-                        </div>
-                        <div class="nimform">
-                            <button class="gselect btn btn-primary" id="start">開始</button>
-                        </div>
-                    </form>
-                </div>
+  <div class="container" id="base">
+    <div class="row">
+      <div class="col-xxl-4 col-lg-6 col-md-8 col-xs-12">
+        <div class="card">
+          <h5 class="card-header text-center">ニム</h5>
+          <div class="nimform" id="output">先攻後攻と難易度を選んで開始を押してください。</div>
+          <form onsubmit="return false;">
+            <div class="nimform text-center" id="counter">0</div>
+            <div class="nimform">
+              <div class="container text-center">
+                <button id="s1" class="gbtn btn btn-primary" disabled>1</button>
+                <button id="s2" class="gbtn btn btn-primary" disabled>2</button>
+                <button id="s3" class="gbtn btn btn-primary" disabled>3</button>
+              </div>
             </div>
+          </form>
+          <hr>
+          <form onsubmit="return false;">
+            <div class="nimform">
+              <input class="gselect" type="radio" name="turn" value="1" checked="checked">先攻
+              <input class="gselect" type="radio" name="turn" value="0">後攻
+            </div>
+            <div class="nimform">
+              初期値
+              <select class="gselect" name="type" id="type">
+                <option value="0">10～30ランダム</option>
+                <option value="1">30～50ランダム</option>
+                <option value="2">10～100ランダム</option>
+              </select>
+            </div>
+            <div class="nimform">
+              <button class="gselect btn btn-primary" id="start">開始</button>
+            </div>
+          </form>
         </div>
+      </div>
     </div>
+  </div>
 </body>
 
 </html>

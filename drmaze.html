@@ -1,597 +1,311 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        #maze {
-            border: solid 1px;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ドルメイズ</title>
+  <style>
+    #maze {
+      border: solid 1px;
+    }
 
-        canvas {
-            position: relative;
-            left: 0px;
-            height: 0px;
-            width: 720px;
-            height: 480px;
-        }
+    canvas {
+      position: relative;
+      left: 0px;
+      height: 0px;
+      width: 720px;
+      height: 480px;
+    }
 
-        #output {
-            position: absolute;
-            top: 20px;
-            left: 0;
-            width: 720px;
-            height: 40px;
-            text-align: center;
-            color: black;
-            font-size: 40px;
-            z-index: 2;
-        }
-    </style>
-    <script>
-"use strict";
+    #output {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      width: 720px;
+      height: 40px;
+      text-align: center;
+      color: black;
+      font-size: 40px;
+      z-index: 2;
+    }
+  </style>
+  <script type="module">
+    import { GameBase, GameObject } from './gamebase.js';
 
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+    class Player extends GameObject {
+      vec = 0;
+      ismove = false;
+      posx = 1;   //現在位置
+      posy = 1;
+      dposx = 0;  //背景表示位置
+      dposy = 0;
+      mova = 0;
+      movb = 0;
+      cposx = 0;  //キャラ中心位置
+      cposy = 0;
+      pposx = 1;  //キャラ表示位置
+      pposy = 1;
+      view = null;
 
-class GameBase {
-  constructor(canvas) {
-    _defineProperty(this, "gamestate", 0);
-
-    _defineProperty(this, "gameobj", []);
-
-    _defineProperty(this, "canvas", null);
-
-    _defineProperty(this, "ctx", null);
-
-    _defineProperty(this, "pkey", {});
-
-    _defineProperty(this, "mousex", -1);
-
-    _defineProperty(this, "mousey", -1);
-
-    _defineProperty(this, "clickx", -1);
-
-    _defineProperty(this, "clicky", -1);
-
-    _defineProperty(this, "frame", 0);
-
-    let _self = this;
-
-    if (typeof canvas === 'string') {
-      let canvasstr = canvas;
-      canvas = document.getElementById(canvasstr);
-
-      if (canvas === null) {
-        window.addEventListener('DOMContentLoaded', e => {
-          canvas = document.getElementById(canvasstr);
-          if (canvas !== null) _self.__init(canvas);
-        });
-        return;
+      constructor(_p, _view, _s = 0) {
+        //super(_p, 0, 0, MazeBoard.longLength, MazeBoard.longLength, _s);
+        super(_p);
+        this.setRect(0, 0, MazeBoard.longLength, MazeBoard.longLength);
+        this.view = _view;
+        this.state = _s;
+        this.init();
       }
-    }
 
-    if (canvas !== null) _self.__init(canvas);
-  }
-
-  __init(canvas) {
-    const ctx = canvas.getContext('2d');
-    this.canvas = canvas;
-
-    if (ctx != null) {
-      this.ctx = ctx;
-      this.pkey = {};
-      this.mousex = -1;
-      this.mousey = -1;
-      this.clickx = -1;
-      this.clicky = -1;
-
-      let _self = this;
-
-      document.addEventListener('keydown', e => {
-        let key = e.key === ' ' ? 'space' : e.key.toLowerCase();
-        if (!e.repeat) _self.pkey[key] = true;
-      });
-      document.addEventListener('keyup', e => {
-        let key = e.key === ' ' ? 'space' : e.key.toLowerCase();
-        if (!e.repeat) _self.pkey[key] = false;
-      });
-      document.addEventListener('mousemove', e => {
-        _self.mousex = e.clientX - canvas.offsetLeft;
-        _self.mousey = e.clientY - canvas.offsetTop;
-      });
-      document.addEventListener('mousedown', e => {
-        _self.pkey['mouse'] = true;
-        _self.clickx = e.clientX - canvas.offsetLeft;
-        _self.clicky = e.clientY - canvas.offsetTop;
-      });
-      document.addEventListener('mouseup', e => {
-        _self.pkey['mouse'] = false;
-      });
-      this.gamestate = 0;
-      this.gameobj = [];
-      this.onStart();
-
-      this.__draw();
-    }
-  }
-
-  __draw() {
-    var _this$canvas;
-
-    if (this.ctx === null || this.canvas === null) return;
-    this.frame = (this.frame + 1) % 100000000;
-    this.ctx.clearRect(0, 0, this.canvas.width, (_this$canvas = this.canvas) === null || _this$canvas === void 0 ? void 0 : _this$canvas.height);
-    this.onDraw(this.canvas, this.ctx, this.gamestate);
-    requestAnimationFrame(this.__draw.bind(this));
-  }
-
-  addObject(obj) {
-    this.gameobj.push(obj);
-  }
-
-  removeObject(obj) {
-    if (this.gameobj.indexOf(obj) > -1) {
-      this.gameobj.splice(this.gameobj.indexOf(obj), 1);
-    }
-  }
-
-  clearObject() {
-    this.gameobj = [];
-  }
-
-  getFrame() {
-    return this.frame;
-  }
-
-  getKey(key) {
-    let repeat = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-    let result = this.pkey[key.toLowerCase()];
-    if (!repeat) this.pkey[key.toLowerCase()] = false;
-    return result;
-  }
-
-  clearKey(key) {
-    this.pkey[key.toLowerCase()] = false;
-  }
-
-  getMousePos() {
-    return {
-      x: this.mousex,
-      y: this.mousey
-    };
-  }
-
-  getClickPos() {
-    return {
-      x: this.clickx,
-      y: this.clicky
-    };
-  }
-
-  onStart() {}
-
-  onDraw(canvas, ctx, gamestate) {
-    if (!Array.isArray(this.gameobj) || this.gameobj.length === 0) return;
-    this.gameobj.forEach(obj => obj.draw(canvas, ctx, gamestate));
-  }
-
-  playObject(obj) {
-    obj.play;
-  }
-
-  playBase64(music) {
-    const datauri = 'data:audio/mp3;base64,' + music;
-    const sound = new Audio(datauri);
-    sound.play();
-    return sound;
-  }
-
-  playURL(url) {
-    const sound = new Audio(url);
-    sound.play();
-    return sound;
-  }
-
-}
-
-class GameObject {
-  constructor(_p, _x, _y, _w, _h, _s) {
-    this.parent = _p;
-    this.x = _x;
-    this.y = _y;
-    this.w = _w;
-    this.h = _h;
-    this.state = _s;
-  }
-
-  draw(canvas, ctx, gamestate) {}
-
-  drawRect(ctx, color) {
-    let fill = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
-    ctx.beginPath();
-    ctx.rect(this.x, this.y, this.w, this.h);
-
-    if (fill) {
-      ctx.fillStyle = color;
-      ctx.fill();
-    } else {
-      ctx.strokeStyle = color;
-      ctx.stroke();
-    }
-
-    ctx.closePath();
-  }
-
-  drawEllipse(ctx, color) {
-    let fill = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
-    ctx.beginPath();
-    ctx.ellipse(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, this.h / 2, 0, 0, Math.PI * 2);
-
-    if (fill) {
-      ctx.fillStyle = color;
-      ctx.fill();
-    } else {
-      ctx.strokeStyle = color;
-      ctx.stroke();
-    }
-
-    ctx.closePath();
-  }
-
-  get top() {
-    return this.y;
-  }
-
-  get bottom() {
-    return this.y + this.h;
-  }
-
-  get left() {
-    return this.x;
-  }
-
-  get right() {
-    return this.x + this.w;
-  }
-
-  static isCollision(a, b) {
-    let t = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -1;
-
-    if (b.left <= a.right && a.left <= b.right && b.top <= a.bottom && a.top <= b.bottom) {
-      //めり込み解消
-      if (t === 0) {
-        //y方向
-        //めり込み具合でどっちから当たったか判別
-        if (a.right - b.left - (b.right - a.left) >= 0) {
-          //左から
-          b.x = a.x - b.w - 1;
-        } else {
-          //右から
-          b.x = a.x + a.w + 1;
-        }
-      } else if (t === 1) {
-        //x方向
-        //めり込み具合でどっちから当たったか判別
-        if (a.bottom - b.top - (b.bottom - a.top) >= 0) {
-          //上から
-          b.y = a.y - b.h - 1;
-        } else {
-          //下から
-          b.y = a.y + a.h + 1;
+      init() {
+        this.x = MazeBoard.longLength;
+        this.y = MazeBoard.longLength;
+        this.pposx = 1;
+        this.pposy = 1;
+        this.mova = Math.floor((MazeBoard.longLength + MazeBoard.shortLength) / 2);
+        this.movb = (MazeBoard.longLength + MazeBoard.shortLength) - this.mova;
+        if (this.base.canvas !== null) {
+          this.cposx = Math.floor(Math.floor(this.base.canvas.width / 2) / (MazeBoard.longLength + MazeBoard.shortLength)) * 2;
+          this.cposy = Math.floor(Math.floor(this.base.canvas.height / 2) / (MazeBoard.longLength + MazeBoard.shortLength)) * 2;
         }
       }
 
-      return true;
-    }
+      check(posx, posy) {
+        if (posx < 0 || posy < 0) return false;
+        if (posx >= MazeBoard.boardWidth || posy >= MazeBoard.boardHeight) return false;
+        return (MazeBoard.boardArr[posy][posx] === 0);
+      }
 
-    return false;
-  }
+      move() {
+        if (this.check(this.posx + MazeBoard.boardVectorX[this.vec], this.posy + MazeBoard.boardVectorY[this.vec])) {
 
-}
-
-class Player extends GameObject {
-  //現在位置
-  //背景表示位置
-  //キャラ中心位置
-  //キャラ表示位置
-  constructor(_p) {
-    let _s = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-
-    //super(_p, 0, 0, MazeBoard.longLength, MazeBoard.longLength, _s);
-    super(_p, 0, 0, MazeBoard.longLength, MazeBoard.longLength, _s);
-
-    _defineProperty(this, "vec", 0);
-
-    _defineProperty(this, "ismove", false);
-
-    _defineProperty(this, "posx", 1);
-
-    _defineProperty(this, "posy", 1);
-
-    _defineProperty(this, "dposx", 0);
-
-    _defineProperty(this, "dposy", 0);
-
-    _defineProperty(this, "mova", 0);
-
-    _defineProperty(this, "movb", 0);
-
-    _defineProperty(this, "cposx", 0);
-
-    _defineProperty(this, "cposy", 0);
-
-    _defineProperty(this, "pposx", 1);
-
-    _defineProperty(this, "pposy", 1);
-
-    this.init();
-  }
-
-  init() {
-    this.x = MazeBoard.longLength;
-    this.y = MazeBoard.longLength;
-    this.pposx = 1;
-    this.pposy = 1;
-    this.mova = Math.floor((MazeBoard.longLength + MazeBoard.shortLength) / 2);
-    this.movb = MazeBoard.longLength + MazeBoard.shortLength - this.mova;
-
-    if (this.parent.canvas !== null) {
-      this.cposx = Math.floor(Math.floor(this.parent.canvas.width / 2) / (MazeBoard.longLength + MazeBoard.shortLength)) * 2;
-      this.cposy = Math.floor(Math.floor(this.parent.canvas.height / 2) / (MazeBoard.longLength + MazeBoard.shortLength)) * 2;
-    }
-  }
-
-  check(posx, posy) {
-    if (posx < 0 || posy < 0) return false;
-    if (posx >= MazeBoard.boardWidth || posy >= MazeBoard.boardHeight) return false;
-    return MazeBoard.boardArr[posy][posx] === 0;
-  }
-
-  move() {
-    if (this.check(this.posx + MazeBoard.boardVectorX[this.vec], this.posy + MazeBoard.boardVectorY[this.vec])) {
-      if (this.vec === 0 || this.vec === 2) {
-        this.posy += MazeBoard.boardVectorY[this.vec]; //Playerが中央にいない場合はPlayerを動かす
-
-        if (this.pposy !== this.cposy) {
-          this.pposy += MazeBoard.boardVectorY[this.vec];
-          this.y += (this.posy % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorY[this.vec];
-        } else {
-          //背景を動かすと背景の範囲外が描画領域に入る場合はPlayerを動かす
-          if (this.vec === 0 && this.parent.dposy + MazeBoard.shortLength > 0) {
-            this.pposy += MazeBoard.boardVectorY[this.vec];
-            this.y += (this.posy % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorY[this.vec];
-          } else if (this.vec === 2 && MazeBoard.pixelHeight + this.parent.dposy - (this.mova - 1) < this.parent.canvas.height) {
-            this.pposy += MazeBoard.boardVectorY[this.vec];
-            this.y += (this.posy % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorY[this.vec];
+          if (this.vec === 0 || this.vec === 2) {
+            this.posy += MazeBoard.boardVectorY[this.vec];
+            //Playerが中央にいない場合はPlayerを動かす
+            if (this.pposy !== this.cposy) {
+              this.pposy += MazeBoard.boardVectorY[this.vec];
+              this.y += (this.posy % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorY[this.vec];
+            } else {
+              //背景を動かすと背景の範囲外が描画領域に入る場合はPlayerを動かす
+              if (this.vec === 0 && this.view.dposy + MazeBoard.shortLength > 0) {
+                this.pposy += MazeBoard.boardVectorY[this.vec];
+                this.y += (this.posy % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorY[this.vec];
+              } else if (this.vec === 2 && (MazeBoard.pixelHeight + this.view.dposy - (this.mova - 1) < this.base.canvas.height)) {
+                this.pposy += MazeBoard.boardVectorY[this.vec];
+                this.y += (this.posy % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorY[this.vec];
+              } else {
+                //背景を動かしても問題ない場合は背景の位置を動かす
+                this.view.dposy -= (this.posy % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorY[this.vec];
+              }
+            }
           } else {
-            //背景を動かしても問題ない場合は背景の位置を動かす
-            this.parent.dposy -= (this.posy % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorY[this.vec];
-          }
-        }
-      } else {
-        this.posx += MazeBoard.boardVectorX[this.vec];
-
-        if (this.pposx !== this.cposx) {
-          this.pposx += MazeBoard.boardVectorX[this.vec];
-          this.x += (this.posx % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorX[this.vec];
-        } else {
-          if (this.vec === 3 && this.parent.dposx + MazeBoard.shortLength > 0) {
-            this.pposx += MazeBoard.boardVectorX[this.vec];
-            this.x += (this.posx % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorX[this.vec];
-          } else if (this.vec === 1 && MazeBoard.pixelWidth + this.parent.dposx - (this.mova - 1) < this.parent.canvas.width) {
-            this.pposx += MazeBoard.boardVectorX[this.vec];
-            this.x += (this.posx % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorX[this.vec];
-          } else {
-            this.parent.dposx -= (this.posx % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorX[this.vec];
+            this.posx += MazeBoard.boardVectorX[this.vec];
+            if (this.pposx !== this.cposx) {
+              this.pposx += MazeBoard.boardVectorX[this.vec];
+              this.x += (this.posx % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorX[this.vec];
+            } else {
+              if (this.vec === 3 && this.view.dposx + MazeBoard.shortLength > 0) {
+                this.pposx += MazeBoard.boardVectorX[this.vec];
+                this.x += (this.posx % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorX[this.vec];
+              } else if (this.vec === 1 && (MazeBoard.pixelWidth + this.view.dposx - (this.mova - 1) < this.base.canvas.width)) {
+                this.pposx += MazeBoard.boardVectorX[this.vec];
+                this.x += (this.posx % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorX[this.vec];
+              } else {
+                this.view.dposx -= (this.posx % 2 === 0 ? this.mova : this.movb) * MazeBoard.boardVectorX[this.vec];
+              }
+            }
           }
         }
       }
-    }
-  }
 
-  draw(canvas, ctx, gamestate) {
-    //上:0　右:1　下:2  左:3
-    if (this.parent.getKey('arrowup')) {
-      this.vec = 0;
-      this.move();
-    } else if (this.parent.getKey('arrowright')) {
-      this.vec = 1;
-      this.move();
-    } else if (this.parent.getKey('arrowdown')) {
-      this.vec = 2;
-      this.move();
-    } else if (this.parent.getKey('arrowleft')) {
-      this.vec = 3;
-      this.move();
-    } else if (this.parent.getKey('space', true)) {
-      if (MazeBoard.boardArr[this.posy + MazeBoard.boardVectorY[this.vec]][this.posx + MazeBoard.boardVectorX[this.vec]] === 1) {
-        MazeBoard.boardArr[this.posy + MazeBoard.boardVectorY[this.vec]][this.posx + MazeBoard.boardVectorX[this.vec]] = 0;
-      }
-    }
-
-    ctx.beginPath();
-
-    switch (this.vec) {
-      case 0:
-        ctx.moveTo(this.x + this.w / 2, this.y);
-        ctx.lineTo(this.x, this.y + this.h);
-        ctx.lineTo(this.x + this.w, this.y + this.h);
-        break;
-
-      case 1:
-        ctx.moveTo(this.x + this.w, this.y + this.h / 2);
-        ctx.lineTo(this.x, this.y);
-        ctx.lineTo(this.x, this.y + this.h);
-        break;
-
-      case 2:
-        ctx.moveTo(this.x + this.w / 2, this.y + this.h);
-        ctx.lineTo(this.x, this.y);
-        ctx.lineTo(this.x + this.w, this.y);
-        break;
-
-      case 3:
-        ctx.moveTo(this.x, this.y + this.h / 2);
-        ctx.lineTo(this.x + this.w, this.y);
-        ctx.lineTo(this.x + this.w, this.y + this.h);
-        break;
-    }
-
-    ctx.fillStyle = 'yellow';
-    ctx.fill();
-    ctx.closePath();
-  }
-
-}
-
-class MazeBoard extends GameBase {
-  constructor() {
-    super(...arguments);
-
-    _defineProperty(this, "dposx", 0);
-
-    _defineProperty(this, "dposy", 0);
-  }
-
-  static BoardInit(width, height) {
-    //奇数である必要があるので偶数なら+1して奇数に
-    MazeBoard.boardArr = [];
-    MazeBoard.boardWidth = width % 2 === 0 ? width + 1 : width;
-    MazeBoard.boardHeight = height % 2 === 0 ? height + 1 : height;
-
-    for (let i = 0; i < MazeBoard.boardHeight; i++) {
-      MazeBoard.boardArr[i] = [];
-
-      for (let j = 0; j < MazeBoard.boardWidth; j++) {
-        MazeBoard.boardArr[i][j] = 0;
-      }
-    }
-
-    MazeBoard.pixelWidth = MazeBoard.longLength * 2 + (MazeBoard.boardWidth - 3) / 2 * MazeBoard.shortLength + (MazeBoard.boardWidth - 1) / 2 * MazeBoard.longLength;
-    MazeBoard.pixelHeight = MazeBoard.longLength * 2 + (MazeBoard.boardHeight - 3) / 2 * MazeBoard.shortLength + (MazeBoard.boardHeight - 1) / 2 * MazeBoard.longLength;
-  }
-
-  static CreateMaze() {
-    //外周を囲む
-    for (let i = 0; i < MazeBoard.boardHeight; i++) {
-      for (let j = 0; j < MazeBoard.boardWidth; j++) {
-        if (i === 0 || j === 0 || i === MazeBoard.boardHeight - 1 || j === MazeBoard.boardWidth - 1) {
-          MazeBoard.boardArr[i][j] = 2;
-        }
-      }
-    } //棒倒し法のベース
-
-
-    for (let i = 2; i < MazeBoard.boardHeight - 1; i += 2) {
-      for (let j = 2; j < MazeBoard.boardWidth - 1; j += 2) {
-        MazeBoard.boardArr[i][j] = 3;
-      }
-    } //棒倒し法
-
-
-    for (let i = 2; i < MazeBoard.boardHeight - 1; i += 2) {
-      for (let j = 2; j < MazeBoard.boardWidth - 1; j += 2) {
-        while (true) {
-          let rnd = Math.floor(Math.random() * 4);
-
-          if (rnd === 0) {
-            //上に倒すのは1列目(y=2)のみ
-            if (i !== 2) continue;
-          } else {
-            let y = i + MazeBoard.boardVectorY[rnd];
-            let x = j + MazeBoard.boardVectorX[rnd]; //すでに倒れていたらもう一度
-
-            if (MazeBoard.boardArr[y][x] === 1) continue;
+      draw(state, canvas, ctx) {
+        if (!ctx) return;
+        //上:0　右:1　下:2  左:3
+        if (this.base.getKey('arrowup')) {
+          this.vec = 0;
+          this.move();
+        } else if (this.base.getKey('arrowright')) {
+          this.vec = 1;
+          this.move();
+        } else if (this.base.getKey('arrowdown')) {
+          this.vec = 2;
+          this.move();
+        } else if (this.base.getKey('arrowleft')) {
+          this.vec = 3;
+          this.move();
+        } else if (this.base.getKeyCode('space', true)) {
+          if (MazeBoard.boardArr[this.posy + MazeBoard.boardVectorY[this.vec]][this.posx + MazeBoard.boardVectorX[this.vec]] === 1) {
+            MazeBoard.boardArr[this.posy + MazeBoard.boardVectorY[this.vec]][this.posx + MazeBoard.boardVectorX[this.vec]] = 0;
           }
+        }
 
-          MazeBoard.boardArr[i + MazeBoard.boardVectorY[rnd]][j + MazeBoard.boardVectorX[rnd]] = 1;
-          break;
+        ctx.beginPath();
+
+        switch (this.vec) {
+          case 0:
+            ctx.moveTo(this.x + (this.w / 2), this.y);
+            ctx.lineTo(this.x, this.y + this.h);
+            ctx.lineTo(this.x + this.w, this.y + this.h);
+            break;
+          case 1:
+            ctx.moveTo(this.x + this.w, this.y + (this.h / 2));
+            ctx.lineTo(this.x, this.y);
+            ctx.lineTo(this.x, this.y + this.h);
+            break;
+          case 2:
+            ctx.moveTo(this.x + (this.w / 2), this.y + this.h);
+            ctx.lineTo(this.x, this.y);
+            ctx.lineTo(this.x + this.w, this.y);
+            break;
+          case 3:
+            ctx.moveTo(this.x, this.y + (this.h / 2));
+            ctx.lineTo(this.x + this.w, this.y);
+            ctx.lineTo(this.x + this.w, this.y + this.h);
+            break;
+        }
+
+        ctx.fillStyle = 'yellow';
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+
+    class MazeView extends GameObject {
+      dposx = 0;
+      dposy = 0;
+      
+      draw(state, canvas, ctx) {
+        if (!ctx) return;
+        let dx = this.dposx;
+        let dy = this.dposy;
+
+        for (let i = 0; i < MazeBoard.boardHeight; i++) {
+          let hshort = false;
+          if (i !== 0 && i !== MazeBoard.boardHeight - 1 && i % 2 === 0) hshort = true;
+          let height = hshort ? MazeBoard.shortLength : MazeBoard.longLength;
+          for (let j = 0; j < MazeBoard.boardWidth; j++) {
+            let wshort = false;
+            if (j !== 0 && j !== MazeBoard.boardWidth - 1 && j % 2 === 0) wshort = true;
+            let width = wshort ? MazeBoard.shortLength : MazeBoard.longLength;
+            if (MazeBoard.boardArr[i][j] === 0) {
+              ctx.beginPath();
+              ctx.rect(dx, dy, width, height);
+              ctx.fillStyle = 'brown';
+              ctx.fill();
+              ctx.closePath();
+            } else if (MazeBoard.boardArr[i][j] === 1 || MazeBoard.boardArr[i][j] === 3) {
+              ctx.beginPath();
+              ctx.rect(dx, dy, width, height);
+              ctx.fillStyle = 'lightgray';
+              ctx.fill();
+              ctx.rect(dx, dy, width, height);
+              ctx.strokeStyle = 'gray';
+              ctx.stroke();
+              ctx.closePath();
+            } else if (MazeBoard.boardArr[i][j] === 2) {
+              ctx.beginPath();
+              ctx.rect(dx, dy, width, height);
+              ctx.fillStyle = 'gray';
+              ctx.fill();
+              ctx.closePath();
+            }
+            dx += width;
+          }
+          dx = this.dposx;
+          dy += height;
         }
       }
     }
-  }
 
-  draw(canvas, ctx) {
-    let dx = this.dposx;
-    let dy = this.dposy;
+    class MazeBoard extends GameBase {
+      static boardArr;
+      static boardWidth;
+      static boardHeight;
+      static shortLength = 5;
+      static longLength = 50;
+      static pixelHeight = 0;
+      static pixelWidth = 0;
 
-    for (let i = 0; i < MazeBoard.boardHeight; i++) {
-      let hshort = false;
-      if (i !== 0 && i !== MazeBoard.boardHeight - 1 && i % 2 === 0) hshort = true;
-      let height = hshort ? MazeBoard.shortLength : MazeBoard.longLength;
+      //上:0　右:1　下:2  左:3
+      static boardVectorX = [0, 1, 0, -1];
+      static boardVectorY = [-1, 0, 1, 0];
 
-      for (let j = 0; j < MazeBoard.boardWidth; j++) {
-        let wshort = false;
-        if (j !== 0 && j !== MazeBoard.boardWidth - 1 && j % 2 === 0) wshort = true;
-        let width = wshort ? MazeBoard.shortLength : MazeBoard.longLength;
+      static BoardInit(width, height) {
+        //奇数である必要があるので偶数なら+1して奇数に
+        MazeBoard.boardArr = [];
+        MazeBoard.boardWidth = width % 2 === 0 ? width + 1 : width;
+        MazeBoard.boardHeight = height % 2 === 0 ? height + 1 : height;
 
-        if (MazeBoard.boardArr[i][j] === 0) {
-          ctx.beginPath();
-          ctx.rect(dx, dy, width, height);
-          ctx.fillStyle = 'brown';
-          ctx.fill();
-          ctx.closePath();
-        } else if (MazeBoard.boardArr[i][j] === 1 || MazeBoard.boardArr[i][j] === 3) {
-          ctx.beginPath();
-          ctx.rect(dx, dy, width, height);
-          ctx.fillStyle = 'lightgray';
-          ctx.fill();
-          ctx.rect(dx, dy, width, height);
-          ctx.strokeStyle = 'gray';
-          ctx.stroke();
-          ctx.closePath();
-        } else if (MazeBoard.boardArr[i][j] === 2) {
-          ctx.beginPath();
-          ctx.rect(dx, dy, width, height);
-          ctx.fillStyle = 'gray';
-          ctx.fill();
-          ctx.closePath();
+        for (let i = 0; i < MazeBoard.boardHeight; i++) {
+          MazeBoard.boardArr[i] = [];
+          for (let j = 0; j < MazeBoard.boardWidth; j++) {
+            MazeBoard.boardArr[i][j] = 0;
+          }
         }
 
-        dx += width;
+        MazeBoard.pixelWidth = (MazeBoard.longLength * 2) + (((MazeBoard.boardWidth - 3) / 2) * MazeBoard.shortLength) + (((MazeBoard.boardWidth - 1) / 2) * MazeBoard.longLength);
+        MazeBoard.pixelHeight = (MazeBoard.longLength * 2) + (((MazeBoard.boardHeight - 3) / 2) * MazeBoard.shortLength) + (((MazeBoard.boardHeight - 1) / 2) * MazeBoard.longLength);
       }
 
-      dx = this.dposx;
-      dy += height;
+      static CreateMaze() {
+        //外周を囲む
+        for (let i = 0; i < MazeBoard.boardHeight; i++) {
+          for (let j = 0; j < MazeBoard.boardWidth; j++) {
+            if (i === 0 || j === 0 || i === MazeBoard.boardHeight - 1 || j === MazeBoard.boardWidth - 1) {
+              MazeBoard.boardArr[i][j] = 2;
+            }
+          }
+        }
+
+        //棒倒し法のベース
+        for (let i = 2; i < MazeBoard.boardHeight - 1; i += 2) {
+          for (let j = 2; j < MazeBoard.boardWidth - 1; j += 2) {
+            MazeBoard.boardArr[i][j] = 3;
+          }
+        }
+
+        //棒倒し法
+        for (let i = 2; i < MazeBoard.boardHeight - 1; i += 2) {
+          for (let j = 2; j < MazeBoard.boardWidth - 1; j += 2) {
+            while (true) {
+              let rnd = Math.floor(Math.random() * 4);
+              if (rnd === 0) {
+                //上に倒すのは1列目(y=2)のみ
+                if (i !== 2) continue;
+              } else {
+                let y = i + MazeBoard.boardVectorY[rnd];
+                let x = j + MazeBoard.boardVectorX[rnd];
+                //すでに倒れていたらもう一度
+                if (MazeBoard.boardArr[y][x] === 1) continue;
+              }
+              MazeBoard.boardArr[i + MazeBoard.boardVectorY[rnd]][j + MazeBoard.boardVectorX[rnd]] = 1;
+              break;
+            }
+          }
+        }
+      }
+
+      init() {
+        MazeBoard.BoardInit(51, 51);
+        MazeBoard.CreateMaze();
+        this.clearObject();
+        const view = new MazeView(this);
+        this.addObject(view);
+        this.addObject(new Player(this, view));
+      }
+
+      onStart() {
+        this.init();
+      }
     }
-  }
 
-  init() {
-    MazeBoard.BoardInit(51, 51);
-    MazeBoard.CreateMaze();
-    this.clearObject();
-    this.addObject(new Player(this));
-  }
-
-  onStart() {
-    this.init();
-  }
-
-  onDraw(canvas, ctx, gamestate) {
-    this.draw(canvas, ctx);
-    super.onDraw(canvas, ctx, gamestate);
-  }
-
-}
-
-_defineProperty(MazeBoard, "shortLength", 5);
-
-_defineProperty(MazeBoard, "longLength", 50);
-
-_defineProperty(MazeBoard, "pixelHeight", 0);
-
-_defineProperty(MazeBoard, "pixelWidth", 0);
-
-_defineProperty(MazeBoard, "boardVectorX", [0, 1, 0, -1]);
-
-_defineProperty(MazeBoard, "boardVectorY", [-1, 0, 1, 0]);
-
-let maze = new MazeBoard('maze');
-    </script>
-    <title>ドルメイズ</title>
+    let maze = new MazeBoard('maze');
+  </script>
 </head>
+
 <body>
-    <div id="output"></div>
-    <canvas id="maze" width="720" height="480"></canvas>    
+  <div id="output"></div>
+  <canvas id="maze" width="720" height="480"></canvas>
 </body>
+
 </html>

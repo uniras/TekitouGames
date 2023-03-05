@@ -2,226 +2,227 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>０スマスター</title>
-    <style>
-        table {
-            border-collapse: collapse;
-            border: solid 5px;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>０スマスター</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      border: solid 5px;
+    }
+
+    tr {
+      margin: 0;
+      padding: 0;
+    }
+
+    .cell {
+      margin: 0;
+      padding: 0;
+      width: 80px;
+      height: 80px;
+      border: outset 2px;
+      font-size: 36px;
+      text-align: center;
+    }
+
+    .ans {
+      margin: 0;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      border: solid 1px;
+      font-size: 36px;
+      text-align: center;
+    }
+
+    #answer {
+      margin-top: 20px;
+    }
+  </style>
+  <script type="module">
+    import 'https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js';
+
+    //答えの配列
+    let answer = [
+      [0, 0, 0],
+      [0, 0, 0],
+      [0, 0, 0],
+    ];
+
+    //現在の配列
+    let board = [
+      [0, 1, 1, 1, 1],
+      [2, 3, 4, 5, 6],
+      [2, 3, 4, 5, 6],
+      [2, 3, 4, 5, 6],
+      [2, 3, 4, 5, 6],
+    ];
+
+    //0:グレー(空白)、1:白、2:赤、3:オレンジ、4:黄色、5:緑、6:青
+    const boardcol = ['gray', 'white', 'red', 'orange', 'yellow', 'green', 'blue'];
+
+    //移動できるかどうか確認
+    const checkmove = function (x, y) {
+      if (x > 0 && board[y][x - 1] === 0) return true;
+      if (x < board[y].length - 1 && board[y][x + 1] === 0) return true;
+      if (y > 0 && board[y - 1][x] === 0) return true;
+      if (y < board.length - 1 && board[y + 1][x] === 0) return true;
+      return false;
+    }
+
+    //移動できるピースのリストを取得
+    const movelist = function () {
+      let result = [];
+      for (let i = 0; i < board.length; i++) {
+        for (let j = 0; j < board[i].length; j++) {
+          if (checkmove(j, i)) result.push({ x: j, y: i });
         }
+      }
+      return result;
+    }
 
-        tr {
-            margin: 0;
-            padding: 0;
+    //ピースの移動
+    const move = function (x, y) {
+      if (checkmove(x, y)) {
+        if (x > 0 && board[y][x - 1] === 0) {
+          board[y][x - 1] = board[y][x];
+          board[y][x] = 0;
+        } else if (x < board[y].length - 1 && board[y][x + 1] === 0) {
+          board[y][x + 1] = board[y][x];
+          board[y][x] = 0;
+        } else if (y > 0 && board[y - 1][x] === 0) {
+          board[y - 1][x] = board[y][x];
+          board[y][x] = 0;
+        } else if (y < board.length - 1 && board[y + 1][x] === 0) {
+          board[y + 1][x] = board[y][x];
+          board[y][x] = 0;
         }
+      }
+    }
 
-        .cell {
-            margin: 0;
-            padding: 0;
-            width: 80px;
-            height: 80px;
-            border: outset 2px;
-            font-size: 36px;
-            text-align: center;
+    //シャッフル
+    const shuffle = function (times = 10000) {
+      for (let i = 0; i < times; i++) {
+        let list = movelist();
+        let rnd = Math.floor(Math.random() * list.length);
+        move(list[rnd].x, list[rnd].y);
+      }
+    }
+
+    //idからx,y位置を取得
+    const getIdPos = function (id) {
+      const result = { x: -1, y: -1 };
+      const match = id.match(/^c(\d+)_(\d+)$/);
+
+      if (match != null) {
+        result.x = parseInt(match[2]);
+        result.y = parseInt(match[1]);
+      }
+
+      return result;
+    }
+
+    //現在の盤面の描画
+    const draw = function () {
+      for (let i = 0; i < board.length; i++) {
+        for (let j = 0; j < board[i].length; j++) {
+          $('#c' + i + '_' + j).css('background-color', boardcol[board[i][j]]);
         }
-
-        .ans {
-            margin: 0;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            border: solid 1px;
-            font-size: 36px;
-            text-align: center;
+      }
+      for (let i = 0; i < answer.length; i++) {
+        for (let j = 0; j < answer[i].length; j++) {
+          $('#a' + i + '_' + j).css('background-color', boardcol[answer[i][j]]);
         }
+      }
+    }
 
-        #answer {
-            margin-top: 20px;
+    //正解のチェック
+    const anscheck = function () {
+      for (let i = 1; i < 1 + answer.length; i++) {
+        for (let j = 1; j < 1 + answer[0].length; j++) {
+          if (board[i][j] !== answer[i - 1][j - 1]) return false;
         }
-    </style>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
-    <script>
-        //答えの配列
-        let answer = [
-            [0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0],
-        ];
+      }
+      return true;
+    }
 
-        //現在の配列
-        let board = [
-            [0, 1, 1, 1, 1],
-            [2, 3, 4, 5, 6],
-            [2, 3, 4, 5, 6],
-            [2, 3, 4, 5, 6],
-            [2, 3, 4, 5, 6],
-        ];
-
-        //0:グレー(空白)、1:白、2:赤、3:オレンジ、4:黄色、5:緑、6:青
-        const boardcol = ['gray', 'white', 'red', 'orange', 'yellow', 'green', 'blue'];
-
-        //移動できるかどうか確認
-        const checkmove = function (x, y) {
-            if (x > 0 && board[y][x - 1] === 0) return true;
-            if (x < board[y].length - 1 && board[y][x + 1] === 0) return true;
-            if (y > 0 && board[y - 1][x] === 0) return true;
-            if (y < board.length - 1 && board[y + 1][x] === 0) return true;
-            return false;
+    const ansset = function () {
+      let ccnt = [0, 0, 0, 0, 0, 0];
+      for (let i = 0; i < answer.length; i++) {
+        for (let j = 0; j < answer[0].length; j++) {
+          while (true) {
+            let rnd = Math.floor(Math.random() * 6) + 1;
+            if (ccnt[rnd - 1] + 1 > 4) continue;
+            ccnt[rnd - 1] += 1;
+            answer[i][j] = rnd;
+            break;
+          }
         }
+      }
+    }
 
-        //移動できるピースのリストを取得
-        const movelist = function () {
-            let result = [];
-            for (let i = 0; i < board.length; i++) {
-                for (let j = 0; j < board[i].length; j++) {
-                    if (checkmove(j, i)) result.push({ x: j, y: i });
-                }
-            }
-            return result;
+    const boardinit = function () {
+      let boardobj = $('#board');
+      for (let i = 0; i < board.length; i++) {
+        boardobj.append('<tr id="r_' + i + '"></tr>');
+        for (let j = 0; j < board[i].length; j++) {
+          $('#r_' + i).append('<td class="cell" id="c' + i + '_' + j + '"></td>')
         }
-
-        //ピースの移動
-        const move = function (x, y) {
-            if (checkmove(x, y)) {
-                if (x > 0 && board[y][x - 1] === 0) {
-                    board[y][x - 1] = board[y][x];
-                    board[y][x] = 0;
-                } else if (x < board[y].length - 1 && board[y][x + 1] === 0) {
-                    board[y][x + 1] = board[y][x];
-                    board[y][x] = 0;
-                } else if (y > 0 && board[y - 1][x] === 0) {
-                    board[y - 1][x] = board[y][x];
-                    board[y][x] = 0;
-                } else if (y < board.length - 1 && board[y + 1][x] === 0) {
-                    board[y + 1][x] = board[y][x];
-                    board[y][x] = 0;
-                }
-            }
+      }
+      let ansobj = $('#answer');
+      for (let i = 0; i < answer.length; i++) {
+        ansobj.append('<tr id="ra_' + i + '"></tr>');
+        for (let j = 0; j < answer[i].length; j++) {
+          $('#ra_' + i).append('<td class="ans" id="a' + i + '_' + j + '"></td>')
         }
+      }
+    }
 
-        //シャッフル
-        const shuffle = function (times = 10000) {
-            for (let i = 0; i < times; i++) {
-                let list = movelist();
-                let rnd = Math.floor(Math.random() * list.length);
-                move(list[rnd].x, list[rnd].y);
-            }
+    //メインループ
+    const loop = async function () {
+      boardinit();
+      ansset();
+      draw();
+      /*
+      await new Promise(s => setTimeout(s, 1000));
+      shuffle(1000);
+      draw();
+      */
+      let clickobj = null;
+      $('.cell').click(function () {
+        clickobj = $(this);
+      });
+
+      $('#output').text('真ん中9マスを下の図のようにそろえてね。スタート！');
+      while (true) {
+        let pos;
+        if (clickobj !== null) {
+          pos = getIdPos(clickobj.attr('id'));
+          clickobj = null;
+        } else {
+          await new Promise(s => setTimeout(s, 100));
+          continue;
         }
+        move(pos.x, pos.y);
+        draw();
+        if (anscheck()) break;
+      }
+      $('#output').text('おめでとうございます！完成しました。');
+    }
 
-        //idからx,y位置を取得
-        const getIdPos = function (id) {
-            const result = { x: -1, y: -1 };
-            const match = id.match(/^c(\d+)_(\d+)$/);
-
-            if (match != null) {
-                result.x = parseInt(match[2]);
-                result.y = parseInt(match[1]);
-            }
-
-            return result;
-        }
-
-        //現在の盤面の描画
-        const draw = function () {
-            for (let i = 0; i < board.length; i++) {
-                for (let j = 0; j < board[i].length; j++) {
-                    $('#c' + i + '_' + j).css('background-color', boardcol[board[i][j]]);
-                }
-            }
-            for (let i = 0; i < answer.length; i++) {
-                for (let j = 0; j < answer[i].length; j++) {
-                    $('#a' + i + '_' + j).css('background-color', boardcol[answer[i][j]]);
-                }
-            }
-        }
-
-        //正解のチェック
-        const anscheck = function () {
-            for (let i = 1; i < 1 + answer.length; i++) {
-                for (let j = 1; j < 1 + answer[0].length; j++) {
-                    if (board[i][j] !== answer[i - 1][j - 1]) return false;
-                }
-            }
-            return true;
-        }
-
-        const ansset = function() {
-            let ccnt = [0, 0, 0, 0, 0, 0];
-            for (let i = 0; i < answer.length; i++) {
-                for (let j = 0; j < answer[0].length; j++) {
-                    while(true) {
-                        let rnd = Math.floor(Math.random() * 6) + 1;
-                        if(ccnt[rnd-1] + 1 > 4) continue;
-                        ccnt[rnd-1] += 1;
-                        answer[i][j] = rnd;
-                        break;
-                    }
-                }
-            }
-        }
-
-        const boardinit = function () {
-            let boardobj = $('#board');
-            for (let i = 0; i < board.length; i++) {
-                boardobj.append('<tr id="r_' + i + '"></tr>');
-                for (let j = 0; j < board[i].length; j++) {
-                    $('#r_' + i).append('<td class="cell" id="c' + i + '_' + j + '"></td>')
-                }
-            }
-            let ansobj = $('#answer');
-            for (let i = 0; i < answer.length; i++) {
-                ansobj.append('<tr id="ra_' + i + '"></tr>');
-                for (let j = 0; j < answer[i].length; j++) {
-                    $('#ra_' + i).append('<td class="ans" id="a' + i + '_' + j + '"></td>')
-                }
-            }
-        }
-
-        //メインループ
-        const loop = async function () {
-            boardinit();
-            ansset();
-            draw();
-            /*
-            await new Promise(s => setTimeout(s, 1000));
-            shuffle(1000);
-            draw();
-            */
-            let clickobj = null;
-            $('.cell').click(function () {
-                clickobj = $(this);
-            });
-
-            $('#output').text('真ん中9マスを下の図のようにそろえてね。スタート！');
-            while(true) {
-                let pos;
-                if(clickobj !== null) {
-                    pos = getIdPos(clickobj.attr('id'));
-                    clickobj = null;
-                } else {
-                    await new Promise(s => setTimeout(s, 100));
-                    continue;
-                }
-                move(pos.x, pos.y);
-                draw();
-                if(anscheck()) break;
-            }
-            $('#output').text('おめでとうございます！完成しました。');
-        }
-
-        $(document).ready(function () {
-            loop();
-        });
-    </script>
+    $(document).ready(function () {
+      loop();
+    });
+  </script>
 </head>
 
 <body>
-    <div id="output">　</div>
-    <table id="board">
-    </table>
-    <table id="answer">
-    </table>
+  <div id="output">　</div>
+  <table id="board">
+  </table>
+  <table id="answer">
+  </table>
 </body>
 
 </html>

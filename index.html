@@ -2,293 +2,266 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
-    <title>てきとうゲームズ</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        a {
-            text-decoration: none;
-            color: black;
-        }
+  <meta charset="UTF-8">
+  <title>てきとうゲームズ</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    a {
+      text-decoration: none;
+      color: black;
+    }
 
-        .card {
-            margin-bottom: 20px;
-        }
-    </style>
+    .card {
+      margin-bottom: 20px;
+    }
+  </style>
 </head>
 
 <body>
-    <div class="p-5 mb-4 bg-light rounded-3 text-center">
-        <div class="container-fluid py-5">
-            <h1 class="display-5 fw-bold">てきとうゲームズ</h1>
-            <p class="fs-0">
-                JavaScriptで適当に作った適当なゲームを公開しています。<br>
-                ライブラリ(jQuery/Bootstrap)をCDNから取得することですべて1ファイルで収めています<br>
-                Chromeしか動作確認してません。
+  <div class="p-5 mb-4 bg-light rounded-3 text-center">
+    <div class="container-fluid py-5">
+      <h1 class="display-5 fw-bold">てきとうゲームズ</h1>
+      <p class="fs-0">
+        JavaScriptで適当に作った適当なゲームを公開しています。<br>
+        Chromeしか動作確認してません。
+      </p>
+    </div>
+  </div>
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./babanuki.html">ババぬき</a></h5>
+          <div class="card-body">
+            <p>
+              トランプクラスの実装テストがてら作ってみた。<br>
+              UI考えるほうが面倒だった(これでも)
             </p>
+            <a href="./babanuki.html" class="btn btn-primary">遊んでみる</a>
+          </div>
         </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./hiandlow.html">ハイアンドロー</a></h5>
+          <div class="card-body">
+            <p>
+              ババ抜きができたのでついでにサクっと作ってみた。<br>
+              やっぱりボタンはダサい。
+            </p>
+            <a href="./hiandlow.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./poker.html">ポーカー</a></h5>
+          <div class="card-body">
+            <p>
+              UIも大変だが、役の判定はもっと大変<br>
+              やっぱりボタンはダサいんだがいい案が思いつかなかった。
+            </p>
+            <a href="./poker.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="container">
-        <div class="row">
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./babanuki.html">ババぬき</a></h5>
-                    <div class="card-body">
-                        <p>
-                            トランプクラスの実装テストがてら作ってみた。<br>
-                            UI考えるほうが面倒だった(これでも)
-                        </p>
-                        <a href="./babanuki.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./hiandlow.html">ハイアンドロー</a></h5>
-                    <div class="card-body">
-                        <p>
-                            ババ抜きができたのでついでにサクっと作ってみた。<br>
-                            やっぱりボタンはダサい。
-                        </p>
-                        <a href="./hiandlow.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./poker.html">ポーカー</a></h5>
-                    <div class="card-body">
-                        <p>
-                            UIも大変だが、役の判定はもっと大変<br>
-                            やっぱりボタンはダサいんだがいい案が思いつかなかった。
-                        </p>
-                        <a href="./poker.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./reversi.html">リバーシ</a></h5>
+          <div class="card-body">
+            <p>
+              8方向の探索をどうするか考えるために作ってみた。<br>
+              COMはただランダムに打てるところに打ってるだけ。
+            </p>
+            <a href="./reversi.html" class="btn btn-primary">遊んでみる</a>
+          </div>
         </div>
-        <div class="row">
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./reversi.html">リバーシ</a></h5>
-                    <div class="card-body">
-                        <p>
-                            8方向の探索をどうするか考えるために作ってみた。<br>
-                            COMはただランダムに打てるところに打ってるだけ。
-                        </p>
-                        <a href="./reversi.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./slide15.html">15パズル</a></h5>
-                    <div class="card-body">
-                        <p>
-                            ちょっと作りたいものが出てきたのでにプロトタイプとして作った。
-                        </p>
-                        <a href="./slide15.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./tetris.html">テトリス</a></li>
-                    </h5>
-                    <div class="card-body">
-                        <p>
-                            2次元配列の回転ってややこしいね
-                        </p>
-                        <a href="./tetris.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./slide15.html">15パズル</a></h5>
+          <div class="card-body">
+            <p>
+              ちょっと作りたいものが出てきたのでにプロトタイプとして作った。
+            </p>
+            <a href="./slide15.html" class="btn btn-primary">遊んでみる</a>
+          </div>
         </div>
-        <div class="row">
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./zerosumaster.html">０(ゼロ)スマスタ―</a></h5>
-                    <div class="card-body">
-                        <p>
-                            「ゼロ」スマスタ―です！<br>
-                            なんでそう言い張るのかは開いてみたらわかるかも。
-                        </p>
-                        <a href="./zerosumaster.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./tictactoe.html">〇×ゲーム</a></h5>
-                    <div class="card-body">
-                        <p>
-                            PHP版を作ったのだからこれも作らないとね。<br>
-                            さすがにCOMはランダムだと面白くないのでリーチを考慮した。
-                        </p>
-                        <a href="./tictactoe.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./nim.html">ニム</a></h5>
-                    <div class="card-body">
-                        <p>
-                            UIの見た目にこだわってみた。<br>
-                            Bootstrapムズい。COMはガチ。
-                        </p>
-                        <a href="./nim.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./tetris.html">テトリス</a></li>
+          </h5>
+          <div class="card-body">
+            <p>
+              2次元配列の回転ってややこしいね
+            </p>
+            <a href="./tetris.html" class="btn btn-primary">遊んでみる</a>
+          </div>
         </div>
-        <div class="row">
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./mine.html">マインスイーパー</a></h5>
-                    <div class="card-body">
-                        <p>
-                            今まで作ったやつの応用でできた。
-                        </p>
-                        <a href="./mine.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./breakout.html">ブロック崩し</a></h5>
-                    <div class="card-body">
-                        <p>
-                            Canvas初挑戦。音声もbase64にして1ファイルに収めた。<br>
-                            当たり判定がめんどくさかった。unityというか物理エンジンすごいね。
-                        </p>
-                        <a href="./breakout.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./breakoutsvg.html">ブロック崩し(SVG版)</a></h5>
-                    <div class="card-body">
-                        <p>
-                            Canvasのブロック崩しをSVGで作り直してみた。
-                            思った以上に違った。
-                        </p>
-                        <a href="./breakoutsvg.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./hitandblow.html">ヒットアンドブロー</a></h5>
-                    <div class="card-body">
-                        <p>
-                            数字当てゲームです。
-                            レイアウトと入力にこだわってみたが、センスがない。
-                        </p>
-                        <a href="./hitandblow.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./snake.html">スネークゲーム</a></h5>
-                    <div class="card-body">
-                        <p>
-                            なんとなく作ってみた。
-                            出来はイマイチ。
-                        </p>
-                        <a href="./snake.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./dontstop.html">Don't Stop(一人用)</a></h5>
-                    <div class="card-body">
-                        <p>
-                            とあるボードゲームを一人用ということにして実装してみた。
-                            いろんなものの集大成。
-                        </p>
-                        <a href="./dontstop.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./sugoroku.html">すごろく</a></h5>
-                    <div class="card-body">
-                        <p>
-                            なんとなく作ってみた。
-                            ゲーム性はなんとゼロ！
-                        </p>
-                        <a href="./sugoroku.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./maze.html">2D 3D迷路</a></h5>
-                    <div class="card-body">
-                        <p>
-                            棒倒し法と迷路ゲームのテスト。
-                            これもゲーム性ほぼゼロ…
-                        </p>
-                        <a href="./maze.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <h5 class="card-header"><a href="./doubleup.html">ダブルアップ</a></h5>
-                    <div class="card-body">
-                        <p>
-                            ポーカー作ったので、D〇4のダブルアップも。
-                            ほとんどポーカーの使いまわし。
-                        </p>
-                        <a href="./doubleup.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-4">
-                <div class="card">
-                    <h5 class="card-header"><a href="./invader.html">インベーダーもどき</a></h5>
-                    <div class="card-body">
-                        <p>
-                            ゲームにもインベーダーにも全く関係のない作業の確認のために作られたので、
-                            作りはこれまで以上に適当。TypeScript製。
-                        </p>
-                        <a href="./invader.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-4">
-                <div class="card">
-                    <h5 class="card-header"><a href="./drmaze.html">ドルメイズ</a></h5>
-                    <div class="card-body">
-                        <p>
-                            ドル・・・っぽい迷路、ただ歩くだけ、壁は壊せる。
-                            画面スクロールのテストのために作成
-                        </p>
-                        <a href="./drmaze.html" class="btn btn-primary">遊んでみる</a>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
-    <div class="container">
-        <p>ゲームじゃないよ</p>
-        <ul class="list-group">
-            <li class="list-group-item"><a href="./fifteensort.html">シャッフルとソートのテスト</a></li>
-            <li class="list-group-item"><a href="./tictactoe.php">〇×ゲーム(PHP版・コードのみ)</a></li>
-        </ul>
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./zerosumaster.html">０(ゼロ)スマスタ―</a></h5>
+          <div class="card-body">
+            <p>
+              「ゼロ」スマスタ―です！<br>
+              なんでそう言い張るのかは開いてみたらわかるかも。
+            </p>
+            <a href="./zerosumaster.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./tictactoe.html">〇×ゲーム</a></h5>
+          <div class="card-body">
+            <p>
+              PHP版を作ったのだからこれも作らないとね。<br>
+              さすがにCOMはランダムだと面白くないのでリーチを考慮した。
+            </p>
+            <a href="./tictactoe.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./nim.html">ニム</a></h5>
+          <div class="card-body">
+            <p>
+              UIの見た目にこだわってみた。<br>
+              Bootstrapムズい。COMはガチ。
+            </p>
+            <a href="./nim.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
     </div>
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./mine.html">マインスイーパー</a></h5>
+          <div class="card-body">
+            <p>
+              今まで作ったやつの応用でできた。
+            </p>
+            <a href="./mine.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./breakout.html">ブロック崩し</a></h5>
+          <div class="card-body">
+            <p>
+              Canvas初挑戦。音声もbase64にして1ファイルに収めた。<br>
+              当たり判定がめんどくさかった。unityというか物理エンジンすごいね。
+            </p>
+            <a href="./breakout.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./breakoutsvg.html">ブロック崩し(SVG版)</a></h5>
+          <div class="card-body">
+            <p>
+              Canvasのブロック崩しをSVGで作り直してみた。
+              思った以上に違った。
+            </p>
+            <a href="./breakoutsvg.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./hitandblow.html">ヒットアンドブロー</a></h5>
+          <div class="card-body">
+            <p>
+              数字当てゲームです。
+              レイアウトと入力にこだわってみたが、センスがない。
+            </p>
+            <a href="./hitandblow.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./snake.html">スネークゲーム</a></h5>
+          <div class="card-body">
+            <p>
+              なんとなく作ってみた。
+              出来はイマイチ。
+            </p>
+            <a href="./snake.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./dontstop.html">Don't Stop(一人用)</a></h5>
+          <div class="card-body">
+            <p>
+              とあるボードゲームを一人用ということにして実装してみた。
+              いろんなものの集大成。
+            </p>
+            <a href="./dontstop.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./sugoroku.html">すごろく</a></h5>
+          <div class="card-body">
+            <p>
+              なんとなく作ってみた。
+              ゲーム性はなんとゼロ！
+            </p>
+            <a href="./sugoroku.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./maze.html">2D 3D迷路</a></h5>
+          <div class="card-body">
+            <p>
+              棒倒し法と迷路ゲームのテスト。
+              これもゲーム性ほぼゼロ…
+            </p>
+            <a href="./maze.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h5 class="card-header"><a href="./doubleup.html">ダブルアップ</a></h5>
+          <div class="card-body">
+            <p>
+              ポーカー作ったので、D〇4のダブルアップも。
+              ほとんどポーカーの使いまわし。
+            </p>
+            <a href="./doubleup.html" class="btn btn-primary">遊んでみる</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <p>ゲームじゃないよ</p>
+    <ul class="list-group">
+      <li class="list-group-item"><a href="./fifteensort.html">シャッフルとソートのテスト</a></li>
+      <li class="list-group-item"><a href="./tictactoe.php">〇×ゲーム(PHP版・コードのみ)</a></li>
+    </ul>
+  </div>
 </body>
 
 </html>
