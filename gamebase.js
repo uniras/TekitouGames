@@ -96,6 +96,12 @@ export class GameBase {
         this.frame = 0;
         this.global = {};
         this.loaded = false;
+        this.canvasBase = canvas;
+        this.funcBase = func;
+    }
+    start() {
+        let canvas = this.canvasBase;
+        let func = this.funcBase;
         if (typeof canvas === 'string') {
             const canvasstr = canvas;
             canvas = document.getElementById(canvasstr);

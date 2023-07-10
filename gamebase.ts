@@ -161,6 +161,10 @@ export class GameBase {
   /** GameBaseが正しくロード済みかどうかを判定するフラグ */
   loaded: boolean;
 
+  canvasBase: HTMLCanvasElement | string | null;
+
+  funcBase: OnStartCallback | null;
+
   /** 
    * コンストラクタ
    * @param canvas - CanvasオブジェクトまたはCanvas要素を指すid文字列
@@ -177,8 +181,14 @@ export class GameBase {
     this.clickpos = { x: 0, y: 0 };
     this.frame = 0;
     this.global = {};
-
     this.loaded = false;
+    this.canvasBase = canvas;
+    this.funcBase = func;
+  }
+
+  start(): void {
+    let canvas = this.canvasBase;
+    let func = this.funcBase;
     if (typeof canvas === 'string') {
       const canvasstr = canvas;
       canvas = document.getElementById(canvasstr) as HTMLCanvasElement | null;

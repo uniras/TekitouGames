@@ -155,7 +155,7 @@
             this.element.style.top = '350px';
             this.element.style.left = '60px';
             if (this.base.getKey('mouse')) {
-              this.base.start();
+              this.base.gamestart();
             }
           } else if (this.base.state == 3) {
             this.element.innerHTML = 'ゲームオーバーです<br>クリックすると再スタート';
@@ -164,7 +164,7 @@
             this.element.style.display = 'block';
             if (this.base.getKey('mouse')) {
               this.base.init();
-              this.base.start();
+              this.base.gamestart();
             }
           } else {
             if (this.element) this.element.style.display = 'none';
@@ -201,6 +201,7 @@
         this.gameobj.push(new wall(this, 0, 0, 480, 15, 1, ballobj));
         this.gameobj.push(new wall(this, 0, 705, 480, 15, 2, ballobj));
         this.gameobj.push(new paddle(this, 190, 650, 100, 20, ballobj));
+        block.blocks = 0;
         for (let i = 0; i < 6; i++) {
           for (let j = 0; j < 6; j++) {
             this.gameobj.push(new block(this, 61 * j + 60, 31 * i + 80, 60, 30, i, ballobj));
@@ -215,7 +216,7 @@
         this.state = 10;
       }
 
-      start() {
+      gamestart() {
         this.state = 1;
       }
 
@@ -229,7 +230,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', e => {
-      const game = new Breakout('breakout');
+      const game = new Breakout('breakout').start();
     });
   </script>
 </head>
